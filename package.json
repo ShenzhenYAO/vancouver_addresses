@@ -1,0 +1,27 @@
+{
+  "name": "vancouver_addresses",
+  "version": "1.0.0",
+  "description": "This project is for matching given addresses to standardized addresses provided by the City of Vancouver.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShenzhenYAO/vancouver_addresses.git"
+  },
+  "author": "Shenzhen Yao",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ShenzhenYAO/vancouver_addresses/issues"
+  },
+  "homepage": "https://github.com/ShenzhenYAO/vancouver_addresses#readme",
+  "dependencies": {
+    "beautify": "^0.0.8",
+    "d3": "^6.7.0",
+    "exceljs": "^4.3.0",
+    "jquery": "^3.3.1",
+    "jsdom": "^19.0.0",
+    "puppeteer": "^13.7.0"
+  }
+}
