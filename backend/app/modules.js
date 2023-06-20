@@ -84,7 +84,7 @@ module.exports = {
             );
 
             await delay(delaysec)
-            // convert the str to percentage encoding (URL encoudling)
+            // convert the str to percentage encoding (URL encoding)
             let percentStr = encodeURI(addr_str)
             let urlStr = 'https://geocoder.api.gov.bc.ca/addresses.geojson?addressString=' + percentStr
             return await get_geocoder_addrdata(urlStr)
@@ -109,7 +109,6 @@ module.exports = {
             let data_str = await fs.readFileSync(srcjsonfile, 'utf8')
             let data_arr = JSON.parse(data_str)
             // console.log(data_arr.length)
-            // return
             // loop for each record in data_arr
             for (let i = 0; i < data_arr.length; i++) {
                 console.log('row ======', i)

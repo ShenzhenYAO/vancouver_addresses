@@ -48,9 +48,8 @@ There is no data dictionary. Following are the variables (could be incomplete) t
     Standardized stree names. A standardized address is like CIVID NUMBER + STD_STREET, e.g., 43 W PENDER ST
 
 3. Limitations
-    a) it only contains addresss in city of Vancouver (not including addresses in Richmond, not to mension the coastal rural areas)
+    a) it only contains addresss in city of Vancouver (not including addresses in Richmond, not to mention the coastal rural areas)
     b) there is no postal code !
-
 
 
 **BC Address Geocoder**
@@ -90,12 +89,11 @@ https://geocoder.api.gov.bc.ca/addresses.geojson?addressString=2617%20sunShine%2
 
 **Solutions**
 ***Standard address from https://geocoder.api.gov.bc.ca***
-There is a demon in front end to illustrate how it works to get a json with standardized address information from https://geocoder.api.gov.bc.ca, i.e., input an address string, and click submit. The returned json appears in the box below. 
+There is a demo in front end to illustrate how it works to get a json with standardized address information from https://geocoder.api.gov.bc.ca, i.e., input an address string, and click submit. The returned json appears in the box below. 
 
 A more detailed backend solution is available.
 
 It reads the 'hops_messy.csv' from data/in. hops_messy.csv was prepared from 'C:\Users\syao2\AppData\Local\Microsoft\Windows\INetCache\Content.Outlook\INEJTKHI\FROM CHRIS_Merged 2018_21 master address file for review ND HH updates 28OCT.xlsx'. 
-
 
 About the methods:
 Read xlsx from a buffer
@@ -149,7 +147,7 @@ Message/ Fax: 604-433-8668
 ***Conclusion***
 - Address provided in the messy document could be wrong. 
 - For organizations (e.g., Matheson Heights Co-op), better to google its website, go into the webpage of the organziation, and get its address.
-- the sites ('https://opendata.vancouver.ca', and 'https://www.bcassessment.ca/) may not return anything. In this case, opendata found a property on Blue Jay St, but is not the one searching for; bcassessment found nothing!
+- the sites ('https://opendata.vancouver.ca', and 'https://www.bcassessment.ca/) may not return anything. In this case, opendata found a property on Blue Jay St, but is not the one searching for; bc assessment found nothing!
 
 
 **Other links**
@@ -158,3 +156,9 @@ https://www.launch2success.com/guide/find-any-google-id/#:~:text=The%20standard%
 
 The video demo is here:
 data/how to find google place id.mp4
+
+
+**Geocode.ca: https://geocoder.ca/?api=1**
+this geocode is NOT the geocode site of BC government
+It provides addr data for ALL address in North America. 
+The url refers to 'Throttled XML API for not-for-profits, which limits request to 500-2000 lookups per day. 
