@@ -4,13 +4,20 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Get standard addresses</title>
+    <title>Home page</title>
 
     <!-- markdown to html -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script> -->
 
     <!-- load the turndown package (to convert html to markdown) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/turndown/7.1.1/turndown.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/turndown/7.1.1/turndown.min.js"></script> -->
+
+    <!-- unzip gz file  -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" integrity="sha512-g2TeAWw5GPnX7z0Kn8nFbYfeHcvAu/tx6d6mrLe/90mkCxO+RcptyYpksUz35EO337F83bZwcmUyHiHamspkfg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<!-- unzip zipfile  -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.js" integrity="sha512-3FKAKNDHbfUwAgW45wNAvfgJDDdNoTi5PZWU7ak3Xm0X8u0LbDBWZEyPklRebTZ8r+p0M2KIJWDYZQjDPyYQEA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	
 
     <!-- jquery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -24,11 +31,19 @@
     <!-- the following allows to use attrs({})-->
     <script src="https://d3js.org/d3-selection-multi.v1.min.js"></script>
 
+    <!-- load the configurations  -->
+    <script src="config/config_main.js "></script>
+
+    <script src="app/modules/geocoder/geocoder.js "></script> 
+    <!-- note: must load it BEFORE main and common.js  -->
+
 
 </head>
 <body>
     <!-- <script src="../node_modules/beautify/index.js "></script> -->
-    <script src="app/modules.js "></script>
-    <script src="app/main.js "></script>
+    <script src="app/js/common.js "></script>
+    <script src="app/js/main.js "></script>
+    
+    
 </body>
 </html>
