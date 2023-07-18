@@ -4,7 +4,7 @@ const global_geocoder_actions_dict = {
     "show bccs original addresses (test)": display_bccs_original_addresses,
     // "get bc geocoder standard (test)": test_get_bc_geocoder,
     "show bccs standard addresses (test)": display_bccs_standard_addresses,
-    "save json to backend (test)": test_save_json_to_backend,
+    // "save json to backend (test)": test_save_json_to_backend,
     "load bccs std addr (before review)": js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review,
     "show poor matching geocoder bc bccs std addr (before review)": test_show_poormatching_geocoder_bc_bccs_standard_addresses_before_review
 }
@@ -57,16 +57,20 @@ async function display_bccs_original_addresses() {
     let attr_name = 'geocoder_bccs_original_addresses'
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
 
-    console.log(datajson)
+    console.log(datajson) // like {addr1: ["lat1, long1", ...]}
     if (!datajson) { return }
     // display it as a list 
     let display_div_d3pn = d3.select('div#display')
     display_div_d3pn.html('')
     display_div_d3pn.styles({ 'display': 'block' })
     let addrs_ul_d3pn = display_div_d3pn.append('ul').styles({ 'font-size': '12px', 'padding': '6px' })
-    let addrs_arr = datajson.data
+    let addrs_dict = datajson.data
+    let addrs_arr = Object.keys(addrs_dict)
+    addrs_arr.sort()
     for (let i = 0; i < addrs_arr.length; i++) {
-        addrs_ul_d3pn.append('li').text(addrs_arr[i])
+        let this_arr = addrs_arr[i]
+        let gps = addrs_dict[this_arr]['gps']
+        addrs_ul_d3pn.append('li').text(this_arr).attrs({ 'gps': gps, 'title': gps ? gps : '' })
     }
 }
 
@@ -98,7 +102,7 @@ async function js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_rev
     // send request to get the bccs data from the backend
     let backend_type = 'nodejs'
     let requesttask = 'js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review'
-    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\\Restricted\Overdose surveillance\master_data\_demographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
+    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\\Restricted\Overdose surveillance\master_data\_geographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
     let frontend_datajson = { file_location: file_location, attr_name: 'geocoder_bccs_standard_addresses_before_review' }
     // console.log(frontend_datajson)
     let save_to_metadiv_spec = { html_identifier: `div#${global_project_datadiv_id}`, attr_name: frontend_datajson.attr_name }
@@ -112,17 +116,21 @@ async function test_get_bc_geocoder() {
     let attr_name = 'geocoder_bccs_original_addresses'
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
 
-    let original_addrs_arr = datajson.data
+    let original_addrs_dict = datajson.data
     // original_addrs_arr = original_addrs_arr.slice(0,2)
+    let original_addrs_arr = Object.keys(original_addrs_dict)
+    original_addrs_arr.sort()
+
 
     let std_addrs_dict = Object.create(null)
     let attr_name2 = 'geocoder_bccs_standard_addresses_before_review'
-    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_demographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
+    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_geographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
     for (let i = 0; i < original_addrs_arr.length; i++) {
+        console.log(`=== original address ${i + 1} of ${original_addrs_arr.length}`)
         let original_address = original_addrs_arr[i]
-        let std_addr_json = await get_bc_geocoder(original_address)
+        let std_addr_json = await get_bc_geocoder(original_address, null)
         if (!std_addr_json) { std_addr_json = { features: [{}] } }
-        let refined_std_addr_json = { geocoder_bc: std_addr_json.features } // only save the refined data, which is relevant and is saved in the key features
+        let refined_std_addr_json = { original_data: original_addrs_dict[original_address], geocoder_bc: std_addr_json.features } // only save the refined data, which is relevant and is saved in the key features
         std_addrs_dict[original_address] = refined_std_addr_json
         if (i / 500 === Math.floor(i / 500)) {
             // save to the project data div
@@ -140,11 +148,11 @@ async function test_get_bc_geocoder() {
     await save_json_to_backend(file_location, std_addrs_dict)
 }
 
-async function test_save_json_to_backend() {
-    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_demographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
-    let datajson = { "test": "datajson" }
-    await save_json_to_backend(file_location, datajson)
-}
+// async function test_save_json_to_backend() {
+//     let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_geographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
+//     let datajson = { "test": "datajson" }
+//     await save_json_to_backend(file_location, datajson)
+// }
 
 async function save_json_to_backend(file_location, datajson) {
     let requesttask = 'js_00a_save_json_to_backend'
@@ -153,7 +161,8 @@ async function save_json_to_backend(file_location, datajson) {
     await restful(requesttask, backend_type, null, frontend_datajson, null, null, null, null)
 }
 
-async function get_bc_geocoder(address) { // get geocoder of a single address
+
+async function get_bc_geocoder(inputstr, search_type) { // get geocoder of a single address
     // let address = "12544 251ST sT, MAPLE RIDGE"
     // console.log('get_bc_geocoder')
     // make sure that there won't be > 1000 requests within one minute
@@ -162,9 +171,60 @@ async function get_bc_geocoder(address) { // get geocoder of a single address
     await waitfor(0.1)
 
     // console.log('address', address)
+    // determine the search type
+    // geocoder bc offers various search types
+    // https://openapi.apps.gov.bc.ca/?url=https://raw.githubusercontent.com/bcgov/api-specs/master/geocoder/geocoder-combined.json#/occupants/get_occupants_nearest__outputFormat_
+    if (! search_type) {search_type = 'addresses'}
+
     // test getting std addr data from https://geocoder.api.gov.bc.ca/addresses.geojson?addressString=
-    let api_prefix = "https://geocoder.api.gov.bc.ca/addresses.geojson?addressString="
-    let urlstr = `${api_prefix}${address}`
+    let api_prefix = "https://geocoder.api.gov.bc.ca/addresses.geojson?addressString=" // by default -- search_type is addresses
+    
+    if (search_type !== 'addresses'){
+        // must check if the inputstr is a point represented by gps coordinates (long, lat)
+        let pattern = "^\\\s{0,}(-|)\\\d{1,}\\\.\\\d{1,}(\\\s{0,}),(\\\s{0,})(-||)\\\d{1,}\\\.\\\d{1,}"// "[0-9]+.\\\d+,( )(-)\\\d+.\\\d+"
+        // may or may not start with any length of spaces
+        // may or may not followed by a -
+        // followed by any length of digits (0-9)
+        // followed by a dot
+        // followed by any length of digits
+        // may or may not followed by spaces
+        // followed by a comma
+        //  may or may not followed by spaces
+        // // followed by any length of digits (0-9)
+        // followed by a dot
+        // followed by any length of digits
+        // like "   ddd.dddd  ,    -ddd.dddd   "
+        let re = new RegExp(pattern)
+        inputstr = inputstr.trim()
+        let test = re.test(inputstr)
+        if (! test) {alert ('please input a gps point in the format of "longitude, latitude", e.g., ( -128.09288, 52.14843 )'); return}
+        else {
+            let gps_arr = inputstr.split(',').map(x=>(x.trim()))
+            let long_num = parseFloat(gps_arr[0])
+            let lat_num = parseFloat(gps_arr[1])
+            // long_num must be between -180 and 180
+            // lat_num must be between -90 and 90
+            if (long_num > 180 || long_num < -180){ alert(`The longitude value you input ${long_num} is not legal, it should be within -180 and 180. Make sure to input the longitude value first, followed by a latitude value.`); return}
+            if (lat_num > 90 || lat_num < -90){ alert(`The latitude value you input ${lat_num} is not legal, it should be within -90 and 90. Make sure to input the longitude value first, followed by a latitude value. `); return}
+            // for a gps long/lat in North America, long_num must be <0, and lat_num must >0
+            if (long_num > 0) {alert(`The longitude value you input ${long_num} does not sounds like in North America. It should be within 0 and -180. Make sure to input a correct North American longitude value.`); return}
+            if (lat_num < 0) {alert(`The lat_num value you input ${lat_num} does not sounds like in North America. It should be within 0 and 90. Make sure to input a correct North American latitude value.`); return}
+            
+            inputstr = gps_arr.join('%2C')
+        }
+
+    }
+    
+
+    if (search_type === 'sites') {
+        api_prefix = "https://geocoder.api.gov.bc.ca/sites/nearest.geojson?point="
+    } else if (search_type === 'intersections') {
+        api_prefix = "https://geocoder.api.gov.bc.ca/intersections/nearest.geojson?point="
+    } else if (search_type === 'occupants') {
+        api_prefix = "https://geocoder.api.gov.bc.ca/occupants/nearest.geojson?point="
+    }
+    let urlstr = `${api_prefix}${inputstr}`
+    // console.log(urlstr)
 
     let requesttask = 'get_bc_geocoder_stdaddress'
     let backend_type = 'frontend_api'
@@ -230,33 +290,202 @@ async function test_show_poormatching_geocoder_bc_bccs_standard_addresses_before
     console.log(Object.keys(poor_matches_dict).length)
 
     // display the poor matches in the display box
-    let display_div_d3pn = d3.select('div#display').styles({"display": "block"})
+    let display_div_d3pn = d3.select('div#display').styles({ "display": "block" })
     display_div_d3pn.html('')
-        .styles({'height':'90%'})
+        .styles({ 'height': '90%' })
     // append a select element and list out original addresses of the poorly matched
 
     let original_addrs_poor_matched_arr = Object.keys(poor_matches_dict)
-    let addr_select_d3pn = display_div_d3pn.append('select').attrs({'id':'addrs'})
+    let addr_select_d3pn = display_div_d3pn.append('select').attrs({ 'id': 'addrs' })
+    let index_addr_d3pn = display_div_d3pn.append('label').attrs({ 'id': 'index_addr' }).styles({ "margin-left": '5px', 'font-size': '10px', 'color': 'grey' })
+
     // add a null option
-    addr_select_d3pn.append('option').attrs({ 'value': 'none', 'selected': true, 'disabled': true, 'hidden': true }).text('Select an address')
-    for (let i = 0; i < original_addrs_poor_matched_arr.length; i++){
+    // addr_select_d3pn.append('option').attrs({ 'value': 'none', 'selected': true, 'disabled': true, 'hidden': true }).text('Select an address')
+    for (let i = 0; i < original_addrs_poor_matched_arr.length; i++) {
         let this_addr = original_addrs_poor_matched_arr[i]
-        addr_select_d3pn.append('option').attrs({'class':'option_addr', 'addr':this_addr, 'value': this_addr}).text(this_addr)
+        addr_select_d3pn.append('option').attrs({ 'class': 'option_addr', 'addr': this_addr, 'value': this_addr, 'addr_index': i }).text(this_addr)
     }
     // on select change, display the json of the poorly matched
-    addr_select_d3pn.on('change', async (ev) => { await display_std_geocoder_data(ev.target) })
-    
-    display_div_d3pn.append('p').attrs({'id':'match_stats'}).styles({'font-size': '12px', 'line-height':'18px'})
-    
-    let textarea_d3pn = display_div_d3pn.append('textarea').attrs({'id': 'std_geocoderbc_data_for_review'}).styles({'display':'none'})
+    addr_select_d3pn.on('change', async (ev) => { 
 
-    
+        await display_std_geocoder_data(ev.target) 
+    })
+
+    // insert a try box for re-entering new addr
+    display_div_d3pn.append('p')
+    display_div_d3pn.append('input').attrs({ 'id': 'retry_input' }).styles({ 'font-size': '12px', 'line-height': '18px', 'width': '70%', 'border':'solid 0px black', 'border-bottom': 'solid 0.5px black', 'outline': '0px solid transparent'})
+        .on('keyup', (ev)=>{
+            if (ev.key === 'Enter') {d3.select('button#retry_submit').node().click()}
+        })
+    let search_type_select_d3pn = display_div_d3pn.append('select').attrs({ 'id': 'search_type' }).styles({ 'font-size': '12px'})
+    let search_types_arr = ['addresses','sites', 'intersections', 'occupants'] 
+    search_types_arr.forEach((d,k)=>{
+        search_type_select_d3pn.append('option')
+        .attrs({
+            'class': 'search_option',
+            'value': d, 'index': k
+        })
+        .text(d)
+    })
+    search_type_select_d3pn.node().value = 'addresses'
+        
+    display_div_d3pn.append('button').attrs({ 'id': 'retry_submit' }).styles({ 'font-size': '12px', 'line-height': '18px', 'margin-left': '5px' }).text('re-try')
+        .on('click', get_bc_gecoder_by_input_addr)
+
+    display_div_d3pn.append('p').attrs({ 'id': 'match_stats' }).styles({ 'font-size': '12px', 'line-height': '18px' })
+
+    // check box to inidcate whether the poorly matched is a correct address or not 
+    display_div_d3pn.append('input').attrs({ 'id': 'matched', 'type': 'radio', 'value': 'matched', 'name': 'matched_decision' })
+        .on('click', async (ev) => {
+            // confirm
+            let confirm_result = confirm('Proceed to remove the current address from the poorly matched list?')
+            // remember the current original addr
+            let current_original_addr = d3.select('select#addrs').node().value
+            console.log(current_original_addr)
+
+            // get the index of the current address in all poorly matched addresses
+            let options_doms_arr = d3.select('select#addrs').selectAll('option.option_addr').nodes()
+            // console.log(options_doms_arr)
+            let addrs_arr = []
+            for(let j = 0; j< options_doms_arr.length; j++){
+                let thisaddr = options_doms_arr[j].getAttribute('addr')
+                addrs_arr.push(thisaddr)
+            } 
+            // console.log(addrs_arr)
+            let index_currentaddr = addrs_arr.indexOf(current_original_addr)
+            // console.log(index_currentaddr, current_original_addr)
+
+
+            // console.log(confirm_result)
+            if (!confirm_result) { ev.target.checked = false } else {                
+
+                // update and save the poorly matched list
+                await update_std_addr_before_review_data()
+                // update the options
+                await test_show_poormatching_geocoder_bc_bccs_standard_addresses_before_review()
+
+                // get the option address again. this time, the current addr has been deleted from the addr list
+                let options_doms_arr2 = d3.select('select#addrs').selectAll('option.option_addr').nodes()
+                // console.log(options_doms_arr)
+                let addrs_arr2 = []
+                for(let j = 0; j< options_doms_arr2.length; j++){
+                    let thisaddr2 = options_doms_arr2[j].getAttribute('addr')
+                    addrs_arr2.push(thisaddr2)
+                } 
+
+                // as the current addr has been deleted, now that the next addr has the same index as index_currentaddr, unless the current addr was the last in the arr
+                let index_nextaddr = index_currentaddr < addrs_arr2.length? index_currentaddr: 0
+                let nextaddr = addrs_arr2[index_nextaddr]
+                // console.log(index_nextaddr, nextaddr)
+                let addr_select_dom = d3.select('select#addrs').node() // must select it again instead of using addr_select_d3pn
+                addr_select_dom.value = nextaddr
+                await display_std_geocoder_data(addr_select_dom)
+            }
+        })
+    display_div_d3pn.append('label').text('yes the standard address is correct.').styles({ 'font-size': '12px' })
+    // display_div_d3pn.append('input').attrs({'id':'unmatched', 'type':'radio', 'value': 'unmatched', 'name':'matched_decision'}) // by giving the same name, it only allows to check one of the radio input
+    // display_div_d3pn.append('label').text('no, it is correct.').styles({'font-size': '12px'})
+    display_div_d3pn.append('p')
+
+
+    // insert a p for match  stats of the newly tried re-enterred addr
+    display_div_d3pn.append('p').attrs({ 'id': 'retry_match_stats' }).styles({ 'font-size': '12px', 'line-height': '18px' })
+
+    let textarea_d3pn = display_div_d3pn.append('textarea').attrs({ 'id': 'std_geocoderbc_data_for_review' }).styles({ 'display': 'none' })
+
+}
+
+async function get_bc_gecoder_by_input_addr() {
+    let original_address = d3.select('select#addrs').node().value
+    let retry_address = d3.select('input#retry_input').node().value
+    // console.log(retry_address)
+    // get search type (site, occupancy, intersection)
+    let search_type = d3.select('select#search_type').node().value
+    // console.log(search_type)
+
+    let std_addr_json = await get_bc_geocoder(retry_address, search_type)
+    if (! std_addr_json) { return }
+    // console.log(std_addr_json) // -128.09288, 52.14843
+
+    // only save the refined data, which is relevant and is saved in the key features
+    // bc geocoder returns different type of data depending on search_type
+    // if search_type is 'addresses', it returns a json dict with a features key
+    // if search_type is sites, intersections, or occupants, it returns a json dict which is an element for the feature!!!
+    let features_arr
+    if (std_addr_json.features) { features_arr = std_addr_json.features }
+    else {features_arr = [std_addr_json]}
+    console.log(features_arr)
+    features_arr[0].retry_data = { search_type: [retry_address] }
+    let features_cnt1 = features_arr.length
+    let score1 = features_arr[0].properties? features_arr[0].properties.score: ""
+    let precisionPoints1 = features_arr[0].properties ? features_arr[0].properties.precisionPoints: ""
+    let locationPositionalAccuracy1 = features_arr[0].properties ? features_arr[0].properties.locationPositionalAccuracy: ""
+
+    // display the new addr in the display box
+    let std_address = features_arr[0].properties.fullAddress
+    let html1 = `<strong>${std_address}</strong><br>`
+    let html2 = `# std addr: ${features_cnt1}, score: ${score1}, precisionPoints:${precisionPoints1}, locationPositionalAccuracy: ${locationPositionalAccuracy1} `
+    d3.select('p#match_stats').html(`${html1}${html2}`)
+
+    // update the geocoder data saved in mega data
+    let html_identifier = `div#${global_project_datadiv_id}`
+    let attr_name = 'geocoder_bccs_standard_addresses_before_review'
+    let std_addr_before_review_dict_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+    let std_addr_before_review_dict = std_addr_before_review_dict_json.data // like {"Original address": {geocoder_bc: {...}}}
+    // find the existing data of the original addr
+    // console.log(std_addr_before_review_dict)
+    let std_data_this_addr_dict = std_addr_before_review_dict[original_address]
+    // find the geocoder_bc
+    let existing_geocoder_bc_arr = std_data_this_addr_dict.geocoder_bc
+    // insert the first element of the new geocoder_data (features_arr) as the first element of the existing
+    existing_geocoder_bc_arr = [features_arr[0], ...existing_geocoder_bc_arr]
+    std_data_this_addr_dict.geocoder_bc = existing_geocoder_bc_arr // must have, otherwise std_data_this_addr_dict is NOT updated
+    // console.log(existing_geocoder_bc_arr)
+    console.log(std_addr_before_review_dict_json.data[original_address])
+
+    // update the display data in std_geocoderbc_data_for_review
+    let textarea_d3pn = d3.select('textarea#std_geocoderbc_data_for_review')
+    let geocoder_data_dict_str = JSON.stringify(std_data_this_addr_dict, null, 4)
+    textarea_d3pn.text(geocoder_data_dict_str)
+        .attrs({ 'data': geocoder_data_dict_str })
+
+    // save it to 'geocoder_bccs_standard_addresses_before_review'
+    await save_json_to_html_attr_base64str_of_gzbuffer(std_addr_before_review_dict_json, html_identifier, attr_name)
 
 
 }
 
+async function update_std_addr_before_review_data() {
 
-async function display_std_geocoder_data(thisdom){
+    // get the current original_addr
+    let original_addr = d3.select('select#addrs').node().value
+    // console.log(original_addr)
+
+    let html_identifier = `div#${global_project_datadiv_id}`
+    let attr_name = 'geocoder_bccs_standard_addresses_before_review'
+    let std_addr_before_review_dict_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+    let std_addr_before_review_dict = std_addr_before_review_dict_json.data // like {"Original address": {geocoder_bc: {...}}}
+    // console.log(std_addr_before_review_dict)
+
+    // get the 
+    let std_addr_before_review_thisaddr = std_addr_before_review_dict[original_addr]
+    let std_addrs_dict = std_addr_before_review_thisaddr.geocoder_bc[0]
+    std_addrs_dict.validation = 'validated'
+    // console.log(std_addr_before_review_dict_json.data[original_addr].geocoder_bc[0]) // the above also update the std_addr_before_review_dict_json
+
+    // save the updated json back to the html
+    await save_json_to_html_attr_base64str_of_gzbuffer(std_addr_before_review_dict_json, html_identifier, attr_name)
+
+    // also, save the std_addrs_dict to frontend\testdata using as a backend nodejs task
+    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_geographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
+    await save_json_to_backend(file_location, std_addr_before_review_dict_json.data)
+
+}
+
+async function display_std_geocoder_data(thisdom) {
+
+    d3.select('input#retry_input').node().value = ""
+
     let this_original_addr = thisdom.value
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name = 'geocoder_bccs_standard_addresses_before_review'
@@ -271,6 +500,13 @@ async function display_std_geocoder_data(thisdom){
         // "features_arr[0].properties.locationPositionalAccuracy !== 'high'", // seems locationPositionalAccuracy does not matter 
     ]
     let poor_matches_dict = get_poor_matches(std_addr_before_review_dict, conditions_arr)
+
+    // get the index
+    let original_addrs_arr = Object.keys(poor_matches_dict)
+    let index_this_original_addr = original_addrs_arr.indexOf(this_original_addr)
+    let index_str = `${index_this_original_addr + 1} of ${original_addrs_arr.length}`
+    d3.select('label#index_addr').text(index_str)
+
     let geocoder_data_dict = poor_matches_dict[this_original_addr]
 
     // make a line about the matching stats
@@ -280,15 +516,18 @@ async function display_std_geocoder_data(thisdom){
     let precisionPoints1 = features_arr[0].properties.precisionPoints
     let locationPositionalAccuracy1 = features_arr[0].properties.locationPositionalAccuracy
 
-    let std_address =  features_arr[0].properties.fullAddress
+    let std_address = features_arr[0].properties.fullAddress
     let html1 = `<strong>${std_address}</strong><br>`
     let html2 = `# std addr: ${features_cnt1}, score: ${score1}, precisionPoints:${precisionPoints1}, locationPositionalAccuracy: ${locationPositionalAccuracy1} `
     d3.select('p#match_stats').html(`${html1}${html2}`)
 
-    let geocoder_data_dict_str = JSON.stringify(geocoder_data_dict, null, 4)
-    let textarea_d3pn = d3.select('textarea#std_geocoderbc_data_for_review').styles({"width": '99%', 'height':'90%', 'display':'block'})   
-    textarea_d3pn.text(geocoder_data_dict_str)         
+    // uncheck the confirm button
+    d3.select('input#matched').node().checked = false
 
+    let geocoder_data_dict_str = JSON.stringify(geocoder_data_dict, null, 4)
+    let textarea_d3pn = d3.select('textarea#std_geocoderbc_data_for_review').styles({ "width": '99%', 'height': '75%', 'display': 'block' })
+    textarea_d3pn.text(geocoder_data_dict_str)
+        .attrs({ 'data': geocoder_data_dict_str })
 }
 
 
@@ -347,6 +586,12 @@ function get_poor_matches(data, conditions_arr) {
         let this_origin_addr = original_addr_arr[i]
         let this_std_addr_before_review_dict = data[this_origin_addr]
 
+        // skip if the first element of geocoder_bc is validated
+        let geocoder_bc_arr = this_std_addr_before_review_dict['geocoder_bc']
+        let geocoder_bc_dict0 = geocoder_bc_arr[0]
+        if (geocoder_bc_dict0 && geocoder_bc_dict0.validation && geocoder_bc_dict0.validation === 'validated') { continue }
+
+
         // each dict is like: geocoder_bc: [data_dict1, 2..]
         let features_arr = this_std_addr_before_review_dict.geocoder_bc
         // if (i === 0) { console.log (features_arr.length); return } else {break}
@@ -361,9 +606,9 @@ function get_poor_matches(data, conditions_arr) {
 
         let poor_match = 0
 
-        for (let i =0; i< conditions_arr.length; i++ ){
+        for (let i = 0; i < conditions_arr.length; i++) {
             let this_condition = conditions_arr[i]
-            if (eval(`${this_condition}`)) {poor_match = 1; break}
+            if (eval(`${this_condition}`)) { poor_match = 1; break }
         }
         // if (features_arr.length === 0 || features_arr.length > 1 || features_arr[0].properties.score < 90 || features_arr[0].properties.precisionPoints < 90 || features_arr[0].properties.locationPositionalAccuracy !== 'high') { poor_match = 1 }
 

@@ -40,7 +40,6 @@ async function makeElements_mainpage() {
             'max-height': '700px', 
             'overflow': 'auto', 
             'width': '40%' ,
-            'border':'solid 0.5px grey',
             'display':'none'
         })
 
@@ -239,10 +238,12 @@ async function restful(
     let status_msg_txt = `Running task ${requesttask}...`
     d3.select('textarea#status').node.value = status_msg_txt
 
+
     // define the tasks to perform after receiving response from backend
     if (!function_to_run_after_receiving_response) {
         function_to_run_after_receiving_response = async (d) => {
             console.log(d)
+
             if (!d.responsedatafrombackend.meta || !d.responsedatafrombackend.meta.description){
                 d.responsedatafrombackend.meta = {description: 'no description received from backend'}
             }
@@ -258,13 +259,16 @@ async function restful(
             thisdom.style.height = thisdom_ht // resize the textarea
 
             // save the data in metadatadiv
-            // console.log(save_to_metadiv_spec)
+            console.log(save_to_metadiv_spec)
+            console.log(d.responsedatafrombackend.data)
+
             if (save_to_metadiv_spec && d.responsedatafrombackend.data) {
+
                 let html_identifier = save_to_metadiv_spec.html_identifier
                 let attr_name = save_to_metadiv_spec.attr_name
                 let datajson = d.responsedatafrombackend
-                // console.log(datajson)
-                save_json_to_html_attr_base64str_of_gzbuffer(datajson, html_identifier, attr_name)
+                console.log(datajson, attr_name)
+                await save_json_to_html_attr_base64str_of_gzbuffer(datajson, html_identifier, attr_name)
             }
 
             // if (d.responsedatafrombackend.system_log){console.log(d.responsedatafrombackend.system_log)}

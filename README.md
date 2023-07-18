@@ -9,3 +9,7 @@ https://bcgov.github.io/ols-devkit/ols-demo/index.html
 
 convert between EPSG 4326 (geocoder bc) and 3857 (geocoder.ca, and google)
 https://developers.auravant.com/en/blog/2022/09/09/post-3/
+
+find location by different types of data (e.g., intersections)
+
+https://openapi.apps.gov.bc.ca/?url=https://raw.githubusercontent.com/bcgov/api-specs/master/geocoder/geocoder-combined.json
