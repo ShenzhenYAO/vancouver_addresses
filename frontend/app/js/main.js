@@ -10,6 +10,8 @@
     // console.log(navselects_arr)
     navselects_arr[0].click()
 
+    return
+
     //// following are for testing
     // click to load bbcs standard addresses
     d3.select('li[id="li_load bccs std addr (before review)"]').node().click()

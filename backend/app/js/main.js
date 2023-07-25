@@ -80,7 +80,13 @@ async function js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_rev
     let file_location = requestdatajson_data.file_location
 
     // read the json file
-    let src_data_json = await mymodules.read_file(file_location) // it is a dict object
+    let src_data_json = Object.create(null)
+    try {
+        src_data_json = await mymodules.read_file(file_location) // it is a dict object
+    }
+    catch(err){
+
+    }
 
     let response_json = src_data_json
     
@@ -97,7 +103,7 @@ async function js_00a_save_json_to_backend(requestdatajson){
     let response_json = Object.create(null)
     response_json.meta = { description: `geocoder bccs standard addresses saved in ${file_location}.` }
     response_json.meta.sources = ["data from frontend"]
-    response_json.meta.programs = [__dirname.replace(/\\/g, '/')]
+    response_json.meta.programs = [__filename.replace(/\\/g, '/')] // not __dirname
     response_json.data = datajson
 
     let datajsonstr = JSON.stringify(response_json)

@@ -13,3 +13,11 @@ https://developers.auravant.com/en/blog/2022/09/09/post-3/
 find location by different types of data (e.g., intersections)
 
 https://openapi.apps.gov.bc.ca/?url=https://raw.githubusercontent.com/bcgov/api-specs/master/geocoder/geocoder-combined.json
+
+open data portal
+
+
+search address, evaluation, and parcel id by address
+https://www.bcassessment.ca/
+
+downloading BC block number data
