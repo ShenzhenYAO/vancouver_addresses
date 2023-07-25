@@ -1,11 +1,11 @@
 
 const global_geocoder_actions_dict = {
-    "load bccs csv": js_geocoder_01_load_bccs_csv,
+    // "load bccs csv": js_geocoder_01_load_bccs_csv,
     "show bccs original addresses (test)": display_bccs_original_addresses,
-    "get bc geocoder standard (test)": test_get_bc_geocoder,
-    "show bccs standard addresses (test)": display_bccs_standard_addresses,
+    "get bc geocoder standard (test)": test_get_bc_geocoder,    
     // "save json to backend (test)": test_save_json_to_backend,
     "load bccs std addr (before review)": js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review,
+    "show bccs standard addresses (test)": display_bccs_standard_addresses,
     "show poor matching geocoder bc bccs std addr (before review)": test_show_poormatching_geocoder_bc_bccs_standard_addresses_before_review
 }
 
@@ -40,6 +40,10 @@ async function makepage_geocoder() {
     let ul_action_d3pn = geocoder_stage_d3pn.append('ul').attrs({ 'id': 'actions' })
     let geocoder_actions_str = "load bccs csv, show bccs original addresses (test), get bc geocoder standard (test), save json to backend (test), load bccs std addr (before review), show bccs standard addresses (test), show poor matching geocoder bc bccs std addr (before review)"
     let geocoder_actions_arr = geocoder_actions_str.split(",").map(x => x.trim())
+    geocoder_actions_arr = geocoder_actions_arr.filter(x=> x.length>0)
+    let exclude_actions_str = "load bccs csv, save json to backend (test), show bccs standard addresses (test)"
+    let exclude_actions_arr = exclude_actions_str.split(",").map(x => x.trim())
+    geocoder_actions_arr = geocoder_actions_arr.filter(x=> ! exclude_actions_arr.includes(x))
     for (let i = 0; i < geocoder_actions_arr.length; i++) {
         let geocoder_actionname = geocoder_actions_arr[i]
         let action_d3pn = ul_action_d3pn.append('li').attrs({ 'id': `li_${geocoder_actionname}`, 'class': 'geocoder_actions', 'action': geocoder_actionname }).text(geocoder_actionname)
@@ -56,6 +60,19 @@ async function display_bccs_original_addresses() {
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name = 'geocoder_bccs_original_addresses'
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+
+    // if there is nothing saved in the html_identifier, try to load it from backend
+    if (! datajson){
+        let confirm_result =confirm(' The original bccs addresses are not loaded, would you like to load the data now?')
+        if (confirm_result){
+            await js_geocoder_01_load_bccs_csv()
+            datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+            
+        } else {
+            console.log('stopped')
+            return
+        }
+    }
 
     console.log(datajson) // like {addr1: ["lat1, long1", ...]}
     if (!datajson) { return }
@@ -78,6 +95,14 @@ async function display_bccs_standard_addresses() {
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name = 'geocoder_bccs_standard_addresses_before_review'
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+
+    if (! datajson){
+        let confirm_result =confirm(' The existing standard bc geo addresses are not loaded, would you like to load the data now?')
+        if (confirm_result){
+            await js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review()
+            datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)            
+        }
+    }
 
     console.log(datajson)
 }
@@ -348,6 +373,16 @@ async function test_show_poormatching_geocoder_bc_bccs_standard_addresses_before
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name = 'geocoder_bccs_standard_addresses_before_review'
     let std_addr_before_review_dict_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+
+    if (! std_addr_before_review_dict_json){
+        let confirm_result =confirm(' The existing standard bc geo addresses are not loaded, would you like to load the data now?')
+        if (confirm_result){
+            await js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review()
+            std_addr_before_review_dict_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)            
+        }
+    }
+
+
     let std_addr_before_review_dict = std_addr_before_review_dict_json.data // like {"Original address": {geocoder_bc: {...}}}
     // console.log(std_addr_before_review_dict)
 
