@@ -1,14 +1,171 @@
 
 const global_geocoder_actions_dict = {
+    "define file locations": define_location_of_files,
     // "load bccs csv": js_geocoder_01_load_bccs_csv,
     "show bccs original addresses (test)": display_bccs_original_addresses,
-    "get bc geocoder standard (test)": test_get_bc_geocoder,    
+    "get bc geocoder standard (test)": test_get_bc_geocoder,
     // "save json to backend (test)": test_save_json_to_backend,
     "load bccs std addr (before review)": js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review,
     "show bccs standard addresses (test)": display_bccs_standard_addresses,
     "show poor matching geocoder bc bccs std addr (before review)": test_show_poormatching_geocoder_bc_bccs_standard_addresses_before_review
 }
 
+async function define_location_of_files() {
+    console.log("define file locations")
+
+    // show questions and ask for input in the display box
+    let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
+    displaybox_d3pn.html('')
+
+    // nay... it is impossible to open a local file by its absolute path (for security concern)
+
+    // displaybox_d3pn.append('label').text('Where is the file containing original addresses?').styles({ 'font-size': '12px'})
+    // displaybox_d3pn.append('p')
+    // let placehodertext = "c:\\mydata\\addresses.csv"
+    // displaybox_d3pn.append('input').attrs({ 'id': 'fullpath_sourcefile', 'placeholder':placehodertext }).styles({ 'font-size': '12px', 'line-height': '18px', 'width': '70%', 'border': 'solid 0px black', 'border-bottom': 'solid 0.5px black', 'outline': '0px solid transparent' })
+    // .on('keyup', (ev) => {
+    //     if (ev.key === 'Enter') { d3.select('button#submit_fullpath_sourcefile').node().click() }
+    // })
+    displaybox_d3pn.append('button').attrs({ 'id': 'open_sourcefile' }).text('open the file containing original addresses').styles({ 'margin-left': '5px' })
+        .on('click', test_getting_src_file)
+
+    // where is the source file
+
+    // test reading it
+
+    // determine the columns that contains address data
+
+    // test the address data
+
+
+}
+
+
+async function test_getting_src_file() {
+
+    let src_file_obj = await openfileAsObj()
+    console.log(src_file_obj)
+
+    let datastr = await get_datastr_from_local_fileobj(src_file_obj)
+    // console.log(datastr)
+
+    let filenamesegs_arr = src_file_obj.name.split('.')
+    let extname = filenamesegs_arr[filenamesegs_arr.length - 1]
+    console.log(extname)
+    let xlsx_filetypes_arr = ['xlsx', 'xlsm']
+    if (xlsx_filetypes_arr.includes(extname)) {
+        // https://www.npmjs.com/package/exceljs?utm_source=cdnjs&utm_medium=cdnjs_link&utm_campaign=cdnjs_library#reading-csv
+        let databuffer = convert_base64str_to_buffer(datastr)
+        let workbook = new ExcelJS.Workbook()
+        await workbook.xlsx.load(databuffer)
+        console.log('55', workbook)
+        workbook.eachSheet(function (worksheet, sheetId) {
+            // ...
+            console.log(sheetId, worksheet.name)
+        });
+
+    }
+    else if (extname === 'csv') {
+        
+        // ExcelJS does not work well with csv files (need to convert datastr to stream, whic cannot be done at client side!)
+        // use papaparse instead https://www.papaparse.com/docs#local-files
+        let parsed_dict = Papa.parse(datastr,
+            {
+                complete: function (d) {
+                    // console.log('completed', d)
+                }
+            })
+
+        let datajson = parsed_dict.data
+        // console.log(datajson) // an array of arrays,[[cellR1C1, cellR1C2], [cellR2C1, R2C2], ...]
+        // first row is the column name
+
+        let colnames_arr = datajson[0]
+        console.log(colnames_arr)
+    }
+
+}
+
+
+
+// get data (as str) from a local fileobj
+async function get_datastr_from_local_fileobj(fileobj) {
+
+    let data_str
+
+    // determine whether it is a text or a binary file
+    // get the extension name
+    let binaryfile = false
+    let filenamesegs_arr = fileobj.name.split('.')
+    let extname = filenamesegs_arr[filenamesegs_arr.length - 1]
+    // console.log(extname)
+
+    let binary_file_extnames_arr = ['gz', 'zip', 'xlsx', 'xlsm']
+    if (binary_file_extnames_arr.includes(extname)) {
+        binaryfile = true
+        // read data as a buffer file
+        console.log(`the file ${fileobj.name} is read as a buffer`)
+        let databuffer = await get_data_from_binary_fileobj(fileobj)
+        // console.log(databuffer)
+        let data_base64str = convert_buffer_to_base64(databuffer) // note: does not work using lines like: let base64str = gzbuffer.toString('base64') Buffer.toString() only works in backend Node.js
+        data_str = data_base64str
+    }
+    else {
+        // read data as a txt file
+        console.log(`the file ${fileobj.name} is read as a txt file`)
+        data_str = await get_data_from_text_fileobj(fileobj)
+        // save it to the metadatadiv
+    }
+
+    return data_str
+}
+
+// get data from a text fileobj
+async function get_data_from_text_fileobj(fileobj) {
+    let newpromise = new Promise(
+        // then new promise is to define a resolved value
+        (resolve) => {
+            readlocaltxtfileobj(fileobj, async function (f) {
+                // console.log(f)
+                resolve(f.target.result) // f.target.result is a string
+            });
+        })
+    let resolved = await newpromise.then(d => {
+        // console.log(d)
+        return d
+    });
+    return resolved
+}
+// read binary file from a fileobj as buffer  
+// note: a similar function is readgzfile() in frontend\js\modules\writing\pyapp_writing.js
+async function get_data_from_binary_fileobj(fileobj) {
+    let newpromise = new Promise(
+        // then new promise is to define a resolved value
+        (resolve) => {
+            readlocalbinaryfile(fileobj, async function (f) {
+                // console.log(f.target.result)
+                resolve(f.target.result) // f.target.result is a string
+            });
+        })
+    let resolved = await newpromise.then(d => {
+        // console.log(d)
+        return d
+    });
+    return resolved
+}
+
+// read contents from a fileobj
+function readlocaltxtfileobj(thefileobj, callback_whendoneDosomething) { // the fileobj is a file system object, containing file name, size, path, etc.
+    var newreaderinstance = new FileReader(); // create a new instance of FileReader() class
+    newreaderinstance.readAsText(thefileobj); // use the method readAsText of the new instance to read the file
+    newreaderinstance.onload = callback_whendoneDosomething; // when the loading is done, run the call back function defined in the readfile instance
+};
+// read contents as buffer from a fileobj
+function readlocalbinaryfile(thefileobj, callback_whendoneDosomething) { // the fileobj is a file system object, containing file name, size, path, etc.
+    var newreaderinstance = new FileReader(); // create a new instance of FileReader() class
+    newreaderinstance.readAsArrayBuffer(thefileobj); // use the method readAsText of the new instance to read the file
+    newreaderinstance.onload = callback_whendoneDosomething; // when the loading is done, run the call back function defined in the readfile instance
+};
 
 async function makepage_geocoder() {
 
@@ -38,12 +195,12 @@ async function makepage_geocoder() {
         })
 
     let ul_action_d3pn = geocoder_stage_d3pn.append('ul').attrs({ 'id': 'actions' })
-    let geocoder_actions_str = "load bccs csv, show bccs original addresses (test), get bc geocoder standard (test), save json to backend (test), load bccs std addr (before review), show bccs standard addresses (test), show poor matching geocoder bc bccs std addr (before review)"
+    let geocoder_actions_str = "define file locations, load bccs csv, show bccs original addresses (test), get bc geocoder standard (test), save json to backend (test), load bccs std addr (before review), show bccs standard addresses (test), show poor matching geocoder bc bccs std addr (before review)"
     let geocoder_actions_arr = geocoder_actions_str.split(",").map(x => x.trim())
-    geocoder_actions_arr = geocoder_actions_arr.filter(x=> x.length>0)
+    geocoder_actions_arr = geocoder_actions_arr.filter(x => x.length > 0)
     let exclude_actions_str = "load bccs csv, save json to backend (test), show bccs standard addresses (test)"
     let exclude_actions_arr = exclude_actions_str.split(",").map(x => x.trim())
-    geocoder_actions_arr = geocoder_actions_arr.filter(x=> ! exclude_actions_arr.includes(x))
+    geocoder_actions_arr = geocoder_actions_arr.filter(x => !exclude_actions_arr.includes(x))
     for (let i = 0; i < geocoder_actions_arr.length; i++) {
         let geocoder_actionname = geocoder_actions_arr[i]
         let action_d3pn = ul_action_d3pn.append('li').attrs({ 'id': `li_${geocoder_actionname}`, 'class': 'geocoder_actions', 'action': geocoder_actionname }).text(geocoder_actionname)
@@ -62,12 +219,12 @@ async function display_bccs_original_addresses() {
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
 
     // if there is nothing saved in the html_identifier, try to load it from backend
-    if (! datajson){
-        let confirm_result =confirm(' The original bccs addresses are not loaded, would you like to load the data now?')
-        if (confirm_result){
+    if (!datajson) {
+        let confirm_result = confirm(' The original bccs addresses are not loaded, would you like to load the data now?')
+        if (confirm_result) {
             await js_geocoder_01_load_bccs_csv()
             datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
-            
+
         } else {
             console.log('stopped')
             return
@@ -96,11 +253,11 @@ async function display_bccs_standard_addresses() {
     let attr_name = 'geocoder_bccs_standard_addresses_before_review'
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
 
-    if (! datajson){
-        let confirm_result =confirm(' The existing standard bc geo addresses are not loaded, would you like to load the data now?')
-        if (confirm_result){
+    if (!datajson) {
+        let confirm_result = confirm(' The existing standard bc geo addresses are not loaded, would you like to load the data now?')
+        if (confirm_result) {
             await js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review()
-            datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)            
+            datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
         }
     }
 
@@ -141,12 +298,12 @@ async function test_get_bc_geocoder() {
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name1 = 'geocoder_bccs_original_addresses'
     let datajson1 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1)
-    if (! datajson1){
-        let confirm_result =confirm(' The original bccs addresses are not loaded, would you like to load the data now?')
-        if (confirm_result){
+    if (!datajson1) {
+        let confirm_result = confirm(' The original bccs addresses are not loaded, would you like to load the data now?')
+        if (confirm_result) {
             await js_geocoder_01_load_bccs_csv()
             datajson1 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1)
-            
+
         } else {
             console.log('stopped')
             return
@@ -158,15 +315,15 @@ async function test_get_bc_geocoder() {
     // get the existing std address 
     let attr_name2 = 'geocoder_bccs_standard_addresses_before_review'
     let datajson2 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name2)
-    if (! datajson2){
-        let confirm_result =confirm(' The existing standard bc geo addresses are not loaded, would you like to load the data now?')
-        if (confirm_result){
+    if (!datajson2) {
+        let confirm_result = confirm(' The existing standard bc geo addresses are not loaded, would you like to load the data now?')
+        if (confirm_result) {
             await js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review()
-            datajson2 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name2)            
+            datajson2 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name2)
         }
     }
     let std_addrs_dict = Object.create(null)
-    if (datajson2){std_addrs_dict = datajson2.data }
+    if (datajson2) { std_addrs_dict = datajson2.data }
     // console.log(std_addrs_dict)
 
     // get the original addresses from the csv file
@@ -180,21 +337,21 @@ async function test_get_bc_geocoder() {
     let existing_original_addrs_arr = Object.keys(std_addrs_dict)
     console.log(existing_original_addrs_arr.length)
 
-    
+
     let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_geographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
-    let count_new_address =0
+    let count_new_address = 0
 
     for (let i = 0; i < original_addrs_arr.length; i++) {
-        
+
         let original_address = original_addrs_arr[i]
         // console.log(`=== original address ${i + 1} of ${original_addrs_arr.length}`)
 
-        if (existing_original_addrs_arr.includes(original_address)){ 
+        if (existing_original_addrs_arr.includes(original_address)) {
             // console.log(`${original_address} has been searched.`); 
             continue;
         }
 
-        count_new_address ++
+        count_new_address++
         // console.log(`${original_address} is new. Getting standard geo BC address...`)
 
         let std_addr_json = await get_bc_geocoder(original_address, null)
@@ -213,10 +370,10 @@ async function test_get_bc_geocoder() {
                 "programs": [
                     "C:/Users/syao2/AppData/Local/MyWorks/js/vancouver_addresses/backend/app/js/main.js"
                 ]
-            }, 
+            },
             data: std_addrs_dict
         }
-        
+
 
         if (i / 500 === Math.floor(i / 500)) {
             // save to the project data div
@@ -237,7 +394,7 @@ async function test_get_bc_geocoder() {
             "programs": [
                 "C:/Users/syao2/AppData/Local/MyWorks/js/vancouver_addresses/backend/app/js/main.js"
             ]
-        }, 
+        },
         data: std_addrs_dict
     }
 
@@ -374,11 +531,11 @@ async function test_show_poormatching_geocoder_bc_bccs_standard_addresses_before
     let attr_name = 'geocoder_bccs_standard_addresses_before_review'
     let std_addr_before_review_dict_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
 
-    if (! std_addr_before_review_dict_json){
-        let confirm_result =confirm(' The existing standard bc geo addresses are not loaded, would you like to load the data now?')
-        if (confirm_result){
+    if (!std_addr_before_review_dict_json) {
+        let confirm_result = confirm(' The existing standard bc geo addresses are not loaded, would you like to load the data now?')
+        if (confirm_result) {
             await js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_review()
-            std_addr_before_review_dict_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)            
+            std_addr_before_review_dict_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
         }
     }
 
@@ -409,7 +566,7 @@ async function test_show_poormatching_geocoder_bc_bccs_standard_addresses_before
     let addr_select_d3pn = display_div_d3pn.append('select').attrs({ 'id': 'addrs' })
     let index_addr_d3pn = display_div_d3pn.append('label').attrs({ 'id': 'index_addr' }).styles({ "margin-left": '5px', 'font-size': '10px', 'color': 'grey' })
 
-     // addr_select_d3pn.append('option').attrs({ 'value': 'none', 'selected': true, 'disabled': true, 'hidden': true }).text('Select an address')
+    // addr_select_d3pn.append('option').attrs({ 'value': 'none', 'selected': true, 'disabled': true, 'hidden': true }).text('Select an address')
     for (let i = 0; i < original_addrs_poor_matched_arr.length; i++) {
         let this_addr = original_addrs_poor_matched_arr[i]
         addr_select_d3pn.append('option').attrs({ 'class': 'option_addr', 'addr': this_addr, 'value': this_addr, 'addr_index': i }).text(this_addr)
@@ -529,7 +686,7 @@ async function get_bc_gecoder_by_input_addr() {
     if (std_addr_json.features) { features_arr = std_addr_json.features }
     else { features_arr = [std_addr_json] }
     console.log(features_arr)
-    features_arr[0].retry_data = { search_type:search_type, address:retry_address }
+    features_arr[0].retry_data = { search_type: search_type, address: retry_address }
     let features_cnt1 = features_arr.length
     let score1 = features_arr[0].properties ? features_arr[0].properties.score : ""
     let precisionPoints1 = features_arr[0].properties ? features_arr[0].properties.precisionPoints : ""
@@ -537,18 +694,18 @@ async function get_bc_gecoder_by_input_addr() {
 
     let faults_arr = features_arr[0].properties.faults
     let notinanyblock_str = ""
-    if (faults_arr && faults_arr.length >0) {
-        for (let j = 0; j < faults_arr.length; j ++){
+    if (faults_arr && faults_arr.length > 0) {
+        for (let j = 0; j < faults_arr.length; j++) {
             let this_fault = faults_arr[j]['fault']
             console.log(this_fault)
-            if (this_fault.toLowerCase().trim() === 'notinanyblock') { notinanyblock_str = `<br /><span style="color: red; "><strong> The civic number you are searching for does not belong to any block on this street.</strong></span>`  }
-    
+            if (this_fault.toLowerCase().trim() === 'notinanyblock') { notinanyblock_str = `<br /><span style="color: red; "><strong> The civic number you are searching for does not belong to any block on this street.</strong></span>` }
+
         }
     }
     let civic_number = features_arr[0].civic_number
     let civic_number_str = ""
-    if ((! civic_number || civic_number.length === 0 ) && notinanyblock_str.length === 0) {
-        civic_number_str = `<br /><span style="color: red; "><strong>Missing or incorrect civic number.</strong></span>`  
+    if ((!civic_number || civic_number.length === 0) && notinanyblock_str.length === 0) {
+        civic_number_str = `<br /><span style="color: red; "><strong>Missing or incorrect civic number.</strong></span>`
     }
 
     // display the new addr in the display box
@@ -655,17 +812,17 @@ async function display_std_geocoder_data(thisdom) {
 
     let faults_arr = features_arr[0].properties.faults
     let notinanyblock_str = ""
-    if (faults_arr && faults_arr.length >0) {
-        for (let j = 0; j < faults_arr.length; j ++){
+    if (faults_arr && faults_arr.length > 0) {
+        for (let j = 0; j < faults_arr.length; j++) {
             let this_fault = faults_arr[j]['fault']
             // console.log(this_fault)
-            if (this_fault.toLowerCase().trim() === 'notinanyblock') { notinanyblock_str = `<br /><span style="color: red; "><strong> The civic number you are searching for does not belong to any block on this street.</strong></span>`  }
+            if (this_fault.toLowerCase().trim() === 'notinanyblock') { notinanyblock_str = `<br /><span style="color: red; "><strong> The civic number you are searching for does not belong to any block on this street.</strong></span>` }
         }
     }
     let civic_number = features_arr[0].civic_number
     let civic_number_str = ""
-    if ((! civic_number || civic_number.length === 0 ) && notinanyblock_str.length === 0) {
-        civic_number_str = `<br /><span style="color: red; "><strong>Missing or incorrect civic number.</strong></span>`  
+    if ((!civic_number || civic_number.length === 0) && notinanyblock_str.length === 0) {
+        civic_number_str = `<br /><span style="color: red; "><strong>Missing or incorrect civic number.</strong></span>`
     }
 
     let std_address = features_arr[0].properties.fullAddress

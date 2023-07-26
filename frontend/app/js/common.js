@@ -405,6 +405,13 @@ function convert_buffer_to_base64(bufferArray) {
     return base64str
 } // convert_buffer_to_base64
 
+function bufferToStream (buffer) {
+    let stream = new Duplex()
+    stream.push(buffer)
+    stream.push(null)
+    return stream
+  }
+
 async function waitfor(seconds){
     return await new Promise((resolve) => {setTimeout(()=>{ resolve(`waited for ${seconds} second(s)`)}, seconds*1000);}).then(d => { console.log(d)}) 
 }
@@ -412,7 +419,61 @@ async function waitfor(seconds){
 
 // load data at frontend from a local file within the project
 
+
+
 // open a file, -- load data at frontend from a file from any local folder
+// the following won't work as it does not allow loading local file by XML HttpRequest()
+async function readTextFile_byfilenamepath(filenamepath) {
+    let newpromise = new Promise(
+        // then new promise is to define a resolved value
+        (resolve) => {
+            let rawFile = new XMLHttpRequest();
+            rawFile.open("GET", filenamepath, false);
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4) {
+                    if (rawFile.status === 200 || rawFile.status == 0) {
+                        let allText = rawFile.responseText;
+                        // console.log(allText)
+                        resolve(allText)
+                    }//
+                }//
+            }//
+            rawFile.send(null)
+        }//resolve
+    ) // new promise;
+    let resolved = await newpromise.then(d => {
+        return d
+    })
+    return resolved
+};//readTextFile_byfilenamepath
+
+// load file by openfile as an obj
+async function openfileAsObj() {
+
+    let inputem = document.createElement('input');
+    inputem.type = 'file';
+    inputem.click();
+
+    const newpromise = new Promise(
+        // then new promise is to define a resolved value
+        (resolve) => {
+            // the resolved value is obtained by the https.get method
+            // to get response on the url (i.e., esearchstr)
+            inputem.onchange = _ => {
+                let thefirstfileobj = inputem.files[0]
+                resolve(thefirstfileobj)
+            };
+        })
+
+    const resolved = await newpromise.then(d => {
+        // console.log(d)
+        return d
+    });
+
+    inputem.remove()
+    return resolved
+} // d3network_importData
+
 
 // load data at backend from a local file, or a url
 ////////////////////////////////////////////////////

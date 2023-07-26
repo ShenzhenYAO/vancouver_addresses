@@ -10,6 +10,9 @@
     // console.log(navselects_arr)
     navselects_arr[0].click()
 
+    d3.select('li[id="li_define file locations"]').node().click()
+
+    
     return
 
     //// following are for testing
