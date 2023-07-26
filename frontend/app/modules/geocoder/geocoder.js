@@ -64,9 +64,16 @@ async function test_getting_src_file() {
             console.log(sheetId, worksheet.name)
         });
 
+        // ask which worksheets to get data from
+
+        // for each sheet, ask // ask which row contains the column names
+        
+        // what column names to get data from
+
+
     }
     else if (extname === 'csv') {
-        
+
         // ExcelJS does not work well with csv files (need to convert datastr to stream, whic cannot be done at client side!)
         // use papaparse instead https://www.papaparse.com/docs#local-files
         let parsed_dict = Papa.parse(datastr,
@@ -80,8 +87,12 @@ async function test_getting_src_file() {
         // console.log(datajson) // an array of arrays,[[cellR1C1, cellR1C2], [cellR2C1, R2C2], ...]
         // first row is the column name
 
+        // ask which row contains the column names
+
         let colnames_arr = datajson[0]
         console.log(colnames_arr)
+
+        // list out the colnames and ask what columns to select
     }
 
 }
