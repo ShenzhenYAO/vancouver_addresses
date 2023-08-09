@@ -29,7 +29,12 @@ async function define_location_of_files() {
     displaybox_d3pn.append('button').attrs({ 'id': 'open_sourcefile' }).text('open the file containing original addresses').styles({ 'margin-left': '5px' })
         .on('click', test_getting_src_file)
 
-    // where is the source file
+    displaybox_d3pn.append('p')
+    displaybox_d3pn.append('button').attrs({ 'id': 'show_colnames' }).text('list out column names of the source data').styles({ 'margin-left': '5px' })
+        .on('click', show_srcdata_colnames)
+    displaybox_d3pn.append('p')
+
+
 
     // test reading it
 
@@ -37,6 +42,212 @@ async function define_location_of_files() {
 
     // test the address data
 
+}
+
+async function show_srcdata_colnames() {
+// list out the column names (order as appeared in the src file)
+    // read data from the html file
+    let html_identifier = `div#${global_project_datadiv_id}`
+    // console.log(97, d3.select(html_identifier).node())
+    let attr_name = `src_address_data`
+    let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+
+    let src_addr_arr
+
+    // set default value for debugging
+    if (!datajson) {
+        src_addr_arr = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
+    } else {
+        src_addr_arr = datajson.data
+    }
+    let colnames_arr = src_addr_arr[0]
+
+    // make a table for selected colnames for addr, lat and long
+    let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
+    displaybox_d3pn.select('table#src_colnames').remove()
+    let colnames_table_d3pn = displaybox_d3pn.append('table').attrs({ 'id': 'src_colnames' }).styles({'font-size':'12px', 'width':'99%'})
+    let colnames_titletr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'id': 'src_colnames_title' })
+    let col_types_arr = ['address', 'latitude', 'longitude']
+    col_types_arr.forEach(t => {
+        let width = '20%'
+        if (t === 'address'){width='40%'}
+        colnames_titletr_d3pn.append('td').text(`${t}`).styles({'width': width})
+    })
+    let buttons_td_d3pn = colnames_titletr_d3pn.append('td')
+    // buttons_td_d3pn.append('button').text('+')
+    // buttons_td_d3pn.append('button').text('-')
+
+    // add the first row
+    add_one_row(col_types_arr, colnames_arr)
+    
+    
+
+}
+
+
+function add_one_row(col_types_arr, colnames_arr){
+    let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
+    let colnames_table_d3pn = displaybox_d3pn.select('table#src_colnames')
+
+    // determine the number of trs before adding a new tr
+    let tr_doms_arr = colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()
+    tr_doms_length = tr_doms_arr.length
+    console.log(tr_doms_length)
+
+    // add a new tr
+    let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({'class':'colnames_tr', 'rowi': tr_doms_length})
+    col_types_arr.forEach(t => {
+        let td_d3pn= colnames_tr_d3pn.append('td').attrs({'id':`${t}`})
+
+        let select_d3pn = td_d3pn.append('select').attrs({'id': `${t}`, 'class':'colnames'}).on('change', (ev)=>{
+            // console.log('changed')
+
+            // check all values in the select elements
+            let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+
+            // update all the select elements options
+            update_colnames_select_elements(unselected_colnames_arr)
+           
+        })
+        select_d3pn.append('option').attrs({'value':'', 'selected':true}).text('')
+        let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+        unselected_colnames_arr.forEach(d=>[
+            select_d3pn.append('option').attrs({'value': `${d}`}).text(`${d}`)
+        ])
+    })
+    buttons_td_d3pn = colnames_tr_d3pn.append('td')
+    buttons_td_d3pn.append('button').text('+').on('click', ()=>{
+        console.log('+ clicked')
+        add_one_row(col_types_arr, colnames_arr)
+
+    })
+    buttons_td_d3pn.append('button').text('-').on('click', (ev)=>{
+        let thisbutton_dom = ev.target
+        // determine the tr where thisbutton_dom is in (.parent is a td, .parent.parent is the tr)
+
+        let tr_of_thisbutton_dom = thisbutton_dom.parentElement.parentElement
+        let tr_rowi = parseInt(tr_of_thisbutton_dom.getAttribute('rowi'))
+        if (tr_rowi>0) {colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()[tr_rowi].remove()}
+
+        let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+        update_colnames_select_elements(unselected_colnames_arr)
+    })
+}
+
+function update_colnames_select_elements(unselected_colnames_arr){
+    let select_doms_arr = d3.selectAll('select.colnames').nodes()
+    select_doms_arr.forEach(s=>{
+        // if (s === ev.target) {console.log ('skip the current select'); return}
+        let select_d3pn = d3.select(s)
+        let current_select_value = s.value
+        // console.log(current_select_value)
+        select_d3pn.selectAll('option').remove()
+        select_d3pn.append('option').attrs({'value':''}).text('')                
+        let unselected_colnames_thisselect_arr=[current_select_value, ...unselected_colnames_arr]
+        unselected_colnames_thisselect_arr = unselected_colnames_thisselect_arr.filter(x=>x.length>0)
+        console.log(unselected_colnames_thisselect_arr)
+        unselected_colnames_thisselect_arr.forEach(c=>{
+            select_d3pn.append('option').attrs({'id':`${c}`, 'value':`${c}`}).text(`${c}`)
+        })
+        s.value = current_select_value
+    })
+}
+
+function get_unselected_colnames(colnames_arr){
+    let selected_colnames_arr = []
+    let colname_select_doms_arr = d3.selectAll('select.colnames').nodes()
+    colname_select_doms_arr.forEach(c=>{
+        let select_colname = c.value
+        if (select_colname.length > 0 && ! selected_colnames_arr.includes(select_colname)){selected_colnames_arr.push(select_colname)}
+    })
+    // console.log(selected_colnames_arr)
+
+    // remove the selected value from the unselected 
+    let unselected_colnames_arr = colnames_arr.filter(x=> ! selected_colnames_arr.includes(x) && x.length >0)
+    console.log(unselected_colnames_arr)
+    return unselected_colnames_arr   
+}
+
+
+async function show_srcdata_colnames1() {
+    // list out the column names (order as appeared in the src file)
+    // read data from the html file
+    let html_identifier = `div#${global_project_datadiv_id}`
+    // console.log(97, d3.select(html_identifier).node())
+    let attr_name = `src_address_data`
+    let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+
+    let src_addr_arr
+
+    // set default value for debugging
+    if (!datajson) {
+        src_addr_arr = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
+    } else {
+        src_addr_arr = datajson.data
+    }
+    let colnames_arr = src_addr_arr[0]
+    // console.log(colnames_arr)
+
+    let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
+    displaybox_d3pn.select('table#src_colnames').remove()
+    let colnames_table_d3pn = displaybox_d3pn.append('table').attrs({ 'id': 'src_colnames' })
+    let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'id': 'src_colnames' })
+    // left
+    let src_colnames_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'src_colnames' }).styles({ 'width': '40%', 'max_width': '45%' })
+    src_colnames_td_d3pn.select('select#src_colnames').remove()
+    let select_srccolnames_d3pn = src_colnames_td_d3pn.append('select').attrs({ 'id': 'src_colnames', 'multiple': true, 'size': '30' }).styles({ 'width': '99%' })
+    colnames_arr.forEach(d => {
+        select_srccolnames_d3pn.append('option').attrs({ 'id': `left_${d}`, 'value': `${d}`, 'colname': `${d}`, 'title': `${d}` }).text(`${d}`)
+    })
+
+    // middle and right, make into one table of three rows
+    let select_columns_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'select_buttons' }).styles({ 'vertical-align': 'middle', 'padding': '5px', 'width': '50%', 'max_width': '54%' })
+    let select_columns_table_d3pn = select_columns_td_d3pn.append('table')
+
+    // add three rows
+    let col_types_arr = ['address', 'latitude', 'longitude']
+    col_types_arr.forEach(t => {
+        // add tr elements for each col type
+        let tr_d3pn = select_columns_table_d3pn.append('tr').attrs({'id': 'select_colnames_rows'})
+        // add a td for buttons
+        let td_button_d3pn = tr_d3pn.append('td').styles({'width':'8%'})
+        // add buttons
+        td_button_d3pn.append('p').text(`${t}`)
+        td_button_d3pn.append('button').text('>').on('click', () => {
+            d3.select(`select#selected_colnames_${t}`).styles({ 'display': 'inline' })
+            $(`select#src_colnames`).find(':selected').appendTo(`select#selected_colnames_${t}`);
+        })
+        td_button_d3pn.append('p')
+        td_button_d3pn.append('button').text('<').on('click', () => {
+            $(`select#selected_colnames_${t}`).find(':selected').appendTo(`select#src_colnames`);
+            // hide the selected select element if there is no options
+            let n_selected_options = d3.select(`select#selected_colnames_${t}`).selectAll('option').nodes()
+            if (!n_selected_options || n_selected_options.length === 0) {
+                d3.select(`select#selected_colnames_${t}`).styles({ 'display': 'none' })
+            }
+        })
+
+        // add a td for selected colnames
+        let td_selected_colnames_d3pn = tr_d3pn.append('td').styles({'width':'40%', 'max-width':'45%'})
+        // add a select
+        td_selected_colnames_d3pn.append('select').attrs({ 'id': `selected_colnames_${t}`, 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
+    
+
+    })
+
+
+    // let button_td_d3pn = select_buttons_table_d3pn.append('tr').append('td')
+    
+
+
+    // // right
+    // // hmmm, there would be multiple select elements, each for address, lat and long
+    // let selected_colnames_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'selected_colnames' }).styles({ 'width': '40%', 'max_width': '45%', 'border': '0px solid grey' })
+    // // in this td, add a table with three tr and tr 
+    // let selected_colnames_table_d3pn = selected_colnames_td_d3pn.append('table').styles({ 'width': '99%' })
+    // selected_colnames_table_d3pn.append('tr').append('td').text('addr').append('select').attrs({ 'id': 'selected_colnames_address', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
+    // selected_colnames_table_d3pn.append('tr').append('td').text('lat').append('select').attrs({ 'id': 'selected_colnames_latitude', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
+    // selected_colnames_table_d3pn.append('tr').append('td').text('long').append('select').attrs({ 'id': 'selected_colnames_longitude', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
 
 }
 
@@ -52,6 +263,9 @@ async function test_getting_src_file() {
     let filenamesegs_arr = src_file_obj.name.split('.')
     let extname = filenamesegs_arr[filenamesegs_arr.length - 1]
     console.log(extname)
+
+    let src_datajson = { 'meta': { src: src_file_obj }, data: null }
+
     let xlsx_filetypes_arr = ['xlsx', 'xlsm']
     if (xlsx_filetypes_arr.includes(extname)) {
         // https://www.npmjs.com/package/exceljs?utm_source=cdnjs&utm_medium=cdnjs_link&utm_campaign=cdnjs_library#reading-csv
@@ -67,7 +281,7 @@ async function test_getting_src_file() {
         // ask which worksheets to get data from
 
         // for each sheet, ask // ask which row contains the column names
-        
+
         // what column names to get data from
 
 
@@ -83,17 +297,19 @@ async function test_getting_src_file() {
                 }
             })
 
-        let datajson = parsed_dict.data
-        // console.log(datajson) // an array of arrays,[[cellR1C1, cellR1C2], [cellR2C1, R2C2], ...]
-        // first row is the column name
-
-        // ask which row contains the column names
-
-        let colnames_arr = datajson[0]
-        console.log(colnames_arr)
+        src_datajson['data'] = parsed_dict.data
 
         // list out the colnames and ask what columns to select
     }
+
+    if (!src_datajson.data) { console.log('there is no data loaded'); return }
+
+    // save the src json to 
+
+    let html_identifier = `div#${global_project_datadiv_id}`
+    // console.log(97, d3.select(html_identifier).node())
+    let attr_name = `src_address_data`
+    await save_json_to_html_attr_base64str_of_gzbuffer(src_datajson, html_identifier, attr_name)
 
 }
 
