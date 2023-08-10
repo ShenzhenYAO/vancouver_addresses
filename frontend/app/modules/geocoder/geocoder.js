@@ -69,8 +69,8 @@ async function show_srcdata_colnames() {
     let colnames_titletr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'id': 'src_colnames_title' })
     let col_types_arr = ['address', 'latitude', 'longitude']
     col_types_arr.forEach(t => {
-        let width = '20%'
-        if (t === 'address'){width='40%'}
+        let width = '30%'
+        if (t === 'address'){width='30%'}
         colnames_titletr_d3pn.append('td').text(`${t}`).styles({'width': width})
     })
     let buttons_td_d3pn = colnames_titletr_d3pn.append('td')
@@ -80,91 +80,124 @@ async function show_srcdata_colnames() {
     // add the first row
     add_one_row(col_types_arr, colnames_arr)
     
-    
 
 }
 
-
-function add_one_row(col_types_arr, colnames_arr){
+function add_one_row(col_types_arr, colnames_arr){ // use input - datalist, not select-options
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
     let colnames_table_d3pn = displaybox_d3pn.select('table#src_colnames')
 
     // determine the number of trs before adding a new tr
     let tr_doms_arr = colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()
     tr_doms_length = tr_doms_arr.length
-    console.log(tr_doms_length)
+    // console.log(tr_doms_length)
 
     // add a new tr
     let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({'class':'colnames_tr', 'rowi': tr_doms_length})
     col_types_arr.forEach(t => {
-        let td_d3pn= colnames_tr_d3pn.append('td').attrs({'id':`${t}`})
+        let td_d3pn= colnames_tr_d3pn.append('td').attrs({'id':`${t}`, 'rowi':tr_doms_length})
 
-        let select_d3pn = td_d3pn.append('select').attrs({'id': `${t}`, 'class':'colnames'}).on('change', (ev)=>{
+        let select_d3pn = td_d3pn.append('input').attrs({'id': `${t}`, 'class':'colnames', 'type':'text', 'list':`${t}_colnames_${tr_doms_length}`}).styles({'width':'80%'})
+        let datalist_d3pn = td_d3pn.append('datalist').attrs({'id':`${t}_colnames_${tr_doms_length}`})
+        select_d3pn
+        .on('blur', (ev)=>{ // blur -- losing focus of this element, focusout -- losing focus of this element and all its descendants
+
+            let inputvalue = ev.target.value
+            if (! colnames_arr.includes(inputvalue) && inputvalue.length>''){
+                console.log('invalid input:', inputvalue)
+                let previous_inputvalue = ev.target.getAttribute('previous_inputvalue')
+                if (! previous_inputvalue) {
+                    ev.target.value = ''
+                } else {
+                    ev.target.value = previous_inputvalue
+                }
+            }
+            ev.target.setAttribute('previous_inputvalue', ev.target.value)
+
             // console.log('changed')
-
             // check all values in the select elements
             let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
-
             // update all the select elements options
-            update_colnames_select_elements(unselected_colnames_arr)
-           
+            update_colnames_select_elements(unselected_colnames_arr)           
         })
-        select_d3pn.append('option').attrs({'value':'', 'selected':true}).text('')
+
+        // datalist_d3pn.append('option').attrs({'value':'', 'selected':true}).text('')
         let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+        // console.log(unselected_colnames_arr)
         unselected_colnames_arr.forEach(d=>[
-            select_d3pn.append('option').attrs({'value': `${d}`}).text(`${d}`)
+            datalist_d3pn.append('option').attrs({'value': `${d}`, 'title':`${d}`}).text(`${d}`)
         ])
+        // console.log(td_d3pn.node())
     })
     buttons_td_d3pn = colnames_tr_d3pn.append('td')
     buttons_td_d3pn.append('button').text('+').on('click', ()=>{
-        console.log('+ clicked')
+        // console.log('+ clicked')
         add_one_row(col_types_arr, colnames_arr)
-
     })
     buttons_td_d3pn.append('button').text('-').on('click', (ev)=>{
         let thisbutton_dom = ev.target
         // determine the tr where thisbutton_dom is in (.parent is a td, .parent.parent is the tr)
-
         let tr_of_thisbutton_dom = thisbutton_dom.parentElement.parentElement
         let tr_rowi = parseInt(tr_of_thisbutton_dom.getAttribute('rowi'))
         if (tr_rowi>0) {colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()[tr_rowi].remove()}
-
         let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
         update_colnames_select_elements(unselected_colnames_arr)
+        // need to update the rowi of the following tr, td, input.colnames, and datalist
+        colnames_table_d3pn.selectAll('tr.colnames_tr').nodes().forEach((r,i)=>{
+            let rowi=i
+            d3.select(r).attrs({'rowi':rowi})
+            d3.select(r).select('td').attrs({'rowi':rowi})
+            let type = d3.select(r).select('td').attr('id') // like address, lat, long
+            let x =`${type}_colnames_${rowi}`
+            d3.select(r).select('td').select('input.colnames').attrs({'list':`${x}`})
+            d3.select(r).select('td').select('datalist').attrs({'id':`${x}`})
+        })
     })
 }
 
+
+
+
 function update_colnames_select_elements(unselected_colnames_arr){
-    let select_doms_arr = d3.selectAll('select.colnames').nodes()
+    // console.log('update colnames select elements=====')
+    let select_doms_arr = d3.selectAll('input.colnames').nodes()
+    // console.log(select_doms_arr)
     select_doms_arr.forEach(s=>{
         // if (s === ev.target) {console.log ('skip the current select'); return}
         let select_d3pn = d3.select(s)
+        let td_d3pn = d3.select(s.parentElement)
+        let rowi = td_d3pn.attr('rowi')
+        // console.log(td_d3pn.node().id)
+        let datalist_d3pn = td_d3pn.select(`datalist#${td_d3pn.node().id}_colnames_${rowi}`)
+        // console.log(datalist_d3pn.node().id)
         let current_select_value = s.value
         // console.log(current_select_value)
-        select_d3pn.selectAll('option').remove()
-        select_d3pn.append('option').attrs({'value':''}).text('')                
+        datalist_d3pn.selectAll('option').remove()
+        // datalist_d3pn.append('option').attrs({'value':''}).text('')                
         let unselected_colnames_thisselect_arr=[current_select_value, ...unselected_colnames_arr]
         unselected_colnames_thisselect_arr = unselected_colnames_thisselect_arr.filter(x=>x.length>0)
-        console.log(unselected_colnames_thisselect_arr)
+        // console.log(unselected_colnames_thisselect_arr)
         unselected_colnames_thisselect_arr.forEach(c=>{
-            select_d3pn.append('option').attrs({'id':`${c}`, 'value':`${c}`}).text(`${c}`)
+            datalist_d3pn.append('option').attrs({'id':`${c}`, 'value':`${c}`, 'title':`${c}`}).text(`${c}`)
         })
+        // console.log(datalist_d3pn.node())
         s.value = current_select_value
     })
 }
 
 function get_unselected_colnames(colnames_arr){
     let selected_colnames_arr = []
-    let colname_select_doms_arr = d3.selectAll('select.colnames').nodes()
+    let colname_select_doms_arr = d3.selectAll('input.colnames').nodes()
     colname_select_doms_arr.forEach(c=>{
         let select_colname = c.value
+        // console.log(c.value)
         if (select_colname.length > 0 && ! selected_colnames_arr.includes(select_colname)){selected_colnames_arr.push(select_colname)}
     })
     // console.log(selected_colnames_arr)
 
     // remove the selected value from the unselected 
     let unselected_colnames_arr = colnames_arr.filter(x=> ! selected_colnames_arr.includes(x) && x.length >0)
-    console.log(unselected_colnames_arr)
+    // console.log(unselected_colnames_arr)
     return unselected_colnames_arr   
 }
 
@@ -1192,3 +1225,52 @@ function get_poor_matches(data, conditions_arr) {
 }
 
 
+function add_one_row_bk(col_types_arr, colnames_arr){ // use select-option not input-datalist
+    let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
+    let colnames_table_d3pn = displaybox_d3pn.select('table#src_colnames')
+
+    // determine the number of trs before adding a new tr
+    let tr_doms_arr = colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()
+    tr_doms_length = tr_doms_arr.length
+    console.log(tr_doms_length)
+
+    // add a new tr
+    let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({'class':'colnames_tr', 'rowi': tr_doms_length})
+    col_types_arr.forEach(t => {
+        let td_d3pn= colnames_tr_d3pn.append('td').attrs({'id':`${t}`})
+
+        let select_d3pn = td_d3pn.append('select').attrs({'id': `${t}`, 'class':'colnames'}).styles({'width':'80%'})
+        .on('input', (ev)=>{
+            console.log('changed')
+
+            // check all values in the select elements
+            let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+
+            // update all the select elements options
+            update_colnames_select_elements(unselected_colnames_arr)
+           
+        })
+        select_d3pn.append('option').attrs({'value':'', 'selected':true}).text('')
+        let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+        unselected_colnames_arr.forEach(d=>[
+            select_d3pn.append('option').attrs({'value': `${d}`}).text(`${d}`)
+        ])
+    })
+    buttons_td_d3pn = colnames_tr_d3pn.append('td')
+    buttons_td_d3pn.append('button').text('+').on('click', ()=>{
+        console.log('+ clicked')
+        add_one_row(col_types_arr, colnames_arr)
+
+    })
+    buttons_td_d3pn.append('button').text('-').on('click', (ev)=>{
+        let thisbutton_dom = ev.target
+        // determine the tr where thisbutton_dom is in (.parent is a td, .parent.parent is the tr)
+
+        let tr_of_thisbutton_dom = thisbutton_dom.parentElement.parentElement
+        let tr_rowi = parseInt(tr_of_thisbutton_dom.getAttribute('rowi'))
+        if (tr_rowi>0) {colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()[tr_rowi].remove()}
+
+        let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+        update_colnames_select_elements(unselected_colnames_arr)
+    })
+}
