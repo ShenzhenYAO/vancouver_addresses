@@ -34,15 +34,169 @@ async function define_location_of_files() {
         .on('click', show_srcdata_colnames)
     displaybox_d3pn.append('p')
 
-
+    // a div to select colnames
+    displaybox_d3pn.append('div').attrs({ 'id': 'select_colnames' })
 
     // test reading it
+    displaybox_d3pn.append('p')
+    displaybox_d3pn.append('button').attrs({ 'id': 'get_original_addresses' }).text('get original addresses').styles({ 'margin-left': '5px' })
+        .on('click', get_original_addresses)
+    displaybox_d3pn.append('p')
 
-    // determine the columns that contains address data
+    // display the original addresses
+    displaybox_d3pn.append('p')
+    displaybox_d3pn.append('button').attrs({ 'id': 'display_original_addresses' }).text('display_original_addresses').styles({ 'margin-left': '5px' })
+        .on('click', display_original_addresses)
+    displaybox_d3pn.append('p')
 
     // test the address data
 
 }
+
+async function display_original_addresses() { // note: similar to display_bccs_original_addresses
+    let html_identifier = `div#${global_project_datadiv_id}`
+    let attr_name = 'geocoder_original_address'
+    let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+
+    // if there is nothing saved in the html_identifier, try to load it from backend
+    if (!datajson) {
+        // probably need to start from getting the original src file (e.g., a csv file)
+        // and define the colnames, and make address data again
+        await  get_original_addresses()
+        return // need to pause until the src file data is loaded, the colnames selected, and the address data is made
+    }
+
+    // console.log(datajson) // like {addr1: ["lat1, long1", ...]}
+    if (!datajson) { return }
+    // display it as a list 
+    let display_div_d3pn = d3.select('div#display')
+    display_div_d3pn.html('')
+    display_div_d3pn.styles({ 'display': 'block' })
+    let addrs_ul_d3pn = display_div_d3pn.append('ul').styles({ 'font-size': '12px', 'padding': '6px' })
+    let addrs_dict = datajson.data
+    let addrs_arr = Object.keys(addrs_dict)
+    addrs_arr.sort()
+    for (let i = 0; i < addrs_arr.length; i++) {
+        let this_arr = addrs_arr[i]
+        let gps = addrs_dict[this_arr]['gps']
+        addrs_ul_d3pn.append('li').text(this_arr).attrs({ 'gps': gps, 'title': gps ? gps : '' })
+    }
+}
+
+
+async function get_original_addresses(){ //
+
+    // load original data
+    let html_identifier = `div#${global_project_datadiv_id}`
+    let attr_name1 = 'src_address_data'
+    let src_address_data_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1) // like[[colnames..], []]
+    if (! src_address_data_json){ 
+        await test_getting_src_file()
+        src_address_data_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1) // like[[colnames..], []]
+    }
+    // console.log(src_address_data_json)
+
+    let src_address_data_arr = src_address_data_json.data
+    let colnames_in_original_data_arr = src_address_data_arr[0]
+    // console.log(colnames_in_original_data_arr)
+
+    // load addr_col_sets
+    let attrname2 = 'original_data_address_colnames'
+    let colname_sets_arr = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attrname2) // like [{address: , latitude:, longitude:}, {}]
+    // console.log(colname_sets_arr)
+
+    if (! colname_sets_arr ){
+        await show_srcdata_colnames()
+        return
+    }
+
+    // loop for each colname_sets
+    let original_addrs_dict = Object.create(null) 
+    colname_sets_arr.forEach(c=>{
+        let colname_address = c.address
+        let index_colname_address = colnames_in_original_data_arr.indexOf(colname_address)
+        let original_addresses_arr = src_address_data_arr.map(x=>x[index_colname_address])
+        // console.log(original_addresses_arr)
+
+        let colname_lat = c.latitude
+        let index_colname_lat = colnames_in_original_data_arr.indexOf(colname_lat)
+        let original_lats_arr = src_address_data_arr.map(x=>x[index_colname_lat])
+
+
+        let colname_long = c.longitude
+        let index_colname_long = colnames_in_original_data_arr.indexOf(colname_long)
+        // console.log(index_colname_long)
+        let original_longs_arr = src_address_data_arr.map(x=>x[index_colname_long])
+        // console.log(original_longs_arr)
+
+        original_addresses_arr.forEach((x, i)=>{
+            if (i===0){return} // skip the first row as it is the col names
+            let addr_value = original_addresses_arr[i]
+            if (! addr_value || addr_value.trim().length===0){return}
+            let lat_value = original_lats_arr[i]?original_lats_arr[i]:''
+            // console.log(original_longs_arr[i])
+            let long_value = original_longs_arr[i]?original_longs_arr[i]:''
+            let gps_str=''
+            if (lat_value.length>0 && long_value.length>0){
+                gps_str = `${lat_value},${long_value}`
+            }
+            if (! original_addrs_dict[addr_value]){original_addrs_dict[addr_value] = {gps:[gps_str]}}
+            else{
+                if (! original_addrs_dict[addr_value]['gps'].includes(gps_str)){original_addrs_dict[addr_value]['gps'].push(gps_str)}
+            }
+            
+        })
+    })
+    console.log(original_addrs_dict)
+
+    await update_original_addresses_at_frontend(original_addrs_dict)
+}
+
+async function update_original_addresses_at_frontend(new_original_addrs_dict){
+
+    // make meta data info
+    let html_identifier = `div#${global_project_datadiv_id}`
+    let attr_name0 = 'src_data_file_info'
+    let src_file_info_dict = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name0)
+    
+    let meta={
+        description:'distinct addresses (with gps lat/long data) from home, injury, and death locations',
+        program:['frontend/app/modules/geocoder/geocoder.js'],
+        source: src_file_info_dict
+    }
+
+    // load the existing original_address data
+    let attr_name1 = 'geocoder_original_address'
+    let datajson1 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1)
+    let original_addrs_dict = Object.create(null) 
+    if (datajson1){original_addrs_dict = datajson1['data']}
+
+    // load the new 
+    let updated_datajson = Object.create(null)
+    updated_datajson['meta'] = meta
+    updated_datajson['data'] = original_addrs_dict
+
+    let new_addrs_arr = Object.keys(new_original_addrs_dict)
+    new_addrs_arr.forEach(a=>{
+        if (! updated_datajson['data'][a]){
+            console.log('adding address dict ===')
+            updated_datajson['data'][a] = new_original_addrs_dict[a]
+        }
+        else {
+            new_original_addrs_dict[a]['gps'].forEach(g=>{
+                if ( (! updated_datajson['data'][a]['gps']) || (! updated_datajson['data'][a]['gps'].includes(g))){
+                    console.log('add a gps ====')
+                    updated_datajson['data'][a]['gps'].push(g)
+                }
+            })
+        }
+    })
+
+    // console.log(updated_datajson)
+    await save_json_to_html_attr_base64str_of_gzbuffer(updated_datajson, html_identifier, attr_name1)
+
+}
+
 
 async function show_srcdata_colnames() {
 // list out the column names (order as appeared in the src file)
@@ -56,7 +210,10 @@ async function show_srcdata_colnames() {
 
     // set default value for debugging
     if (!datajson) {
-        src_addr_arr = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
+        // src_addr_arr = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
+        await test_getting_src_file()
+        datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+        src_addr_arr = datajson.data
     } else {
         src_addr_arr = datajson.data
     }
@@ -64,8 +221,9 @@ async function show_srcdata_colnames() {
 
     // make a table for selected colnames for addr, lat and long
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
-    displaybox_d3pn.select('table#src_colnames').remove()
-    let colnames_table_d3pn = displaybox_d3pn.append('table').attrs({ 'id': 'src_colnames' }).styles({'font-size':'12px', 'width':'99%'})
+    let select_colnames_box_d3pn = d3.select('div#select_colnames')
+    select_colnames_box_d3pn.select('table#src_colnames').remove()
+    let colnames_table_d3pn = select_colnames_box_d3pn.append('table').attrs({ 'id': 'src_colnames' }).styles({'font-size':'12px', 'width':'99%'})
     let colnames_titletr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'id': 'src_colnames_title' })
     let col_types_arr = ['address', 'latitude', 'longitude']
     col_types_arr.forEach(t => {
@@ -74,16 +232,34 @@ async function show_srcdata_colnames() {
         colnames_titletr_d3pn.append('td').text(`${t}`).styles({'width': width})
     })
     let buttons_td_d3pn = colnames_titletr_d3pn.append('td')
-    // buttons_td_d3pn.append('button').text('+')
-    // buttons_td_d3pn.append('button').text('-')
+
 
     // add the first row
-    add_one_row(col_types_arr, colnames_arr)
+    await add_one_row(col_types_arr, colnames_arr)
     
 
 }
 
-function add_one_row(col_types_arr, colnames_arr){ // use input - datalist, not select-options
+function make_original_addresses_colnames(){ 
+
+    let colname_sets_arr =[] // [{address:, lat:, long:}]
+    // get colnames from the input
+    let trs_arr = d3.selectAll('tr.colnames_tr').nodes()
+    trs_arr.forEach(r=>{
+        let tr_d3pn = d3.select(r)
+        // let rowi = r.attr('rowi')
+        let data_type_arr = ['address', 'latitude', 'longitude']
+        let tmp_dict=Object.create(null)
+        data_type_arr.forEach(t=>{
+            let input_dom_this_datatype = tr_d3pn.select(`input#${t}`).node()
+            tmp_dict[t] =  input_dom_this_datatype.value
+        })
+        colname_sets_arr.push(tmp_dict)
+    })
+    return colname_sets_arr
+}
+
+async function add_one_row(col_types_arr, colnames_arr){ // use input - datalist, not select-options
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
     let colnames_table_d3pn = displaybox_d3pn.select('table#src_colnames')
 
@@ -100,7 +276,7 @@ function add_one_row(col_types_arr, colnames_arr){ // use input - datalist, not 
         let select_d3pn = td_d3pn.append('input').attrs({'id': `${t}`, 'class':'colnames', 'type':'text', 'list':`${t}_colnames_${tr_doms_length}`}).styles({'width':'80%'})
         let datalist_d3pn = td_d3pn.append('datalist').attrs({'id':`${t}_colnames_${tr_doms_length}`})
         select_d3pn
-        .on('blur', (ev)=>{ // blur -- losing focus of this element, focusout -- losing focus of this element and all its descendants
+        .on('blur', async (ev)=>{ // blur -- losing focus of this element, focusout -- losing focus of this element and all its descendants
 
             let inputvalue = ev.target.value
             if (! colnames_arr.includes(inputvalue) && inputvalue.length>''){
@@ -118,7 +294,15 @@ function add_one_row(col_types_arr, colnames_arr){ // use input - datalist, not 
             // check all values in the select elements
             let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
             // update all the select elements options
-            update_colnames_select_elements(unselected_colnames_arr)           
+            update_colnames_select_elements(unselected_colnames_arr)  
+            
+            // save selected_colnames_arr {address:{gps: [lat, long]}}
+            let colname_sets_arr = make_original_addresses_colnames()
+            // save it to project data div
+            let html_identifier = `div#${global_project_datadiv_id}`
+            let attr_name = 'original_data_address_colnames'
+            await save_json_to_html_attr_base64str_of_gzbuffer(colname_sets_arr, html_identifier, attr_name)
+
         })
 
         // datalist_d3pn.append('option').attrs({'value':'', 'selected':true}).text('')
@@ -130,11 +314,11 @@ function add_one_row(col_types_arr, colnames_arr){ // use input - datalist, not 
         // console.log(td_d3pn.node())
     })
     buttons_td_d3pn = colnames_tr_d3pn.append('td')
-    buttons_td_d3pn.append('button').text('+').on('click', ()=>{
+    buttons_td_d3pn.append('button').text('+').on('click', async ()=>{
         // console.log('+ clicked')
-        add_one_row(col_types_arr, colnames_arr)
+        await add_one_row(col_types_arr, colnames_arr)
     })
-    buttons_td_d3pn.append('button').text('-').on('click', (ev)=>{
+    buttons_td_d3pn.append('button').text('-').on('click', async (ev)=>{
         let thisbutton_dom = ev.target
         // determine the tr where thisbutton_dom is in (.parent is a td, .parent.parent is the tr)
         let tr_of_thisbutton_dom = thisbutton_dom.parentElement.parentElement
@@ -152,6 +336,14 @@ function add_one_row(col_types_arr, colnames_arr){ // use input - datalist, not 
             d3.select(r).select('td').select('input.colnames').attrs({'list':`${x}`})
             d3.select(r).select('td').select('datalist').attrs({'id':`${x}`})
         })
+
+        // save selected_colnames_arr {address:{gps: [lat, long]}}
+        let colname_sets_arr = make_original_addresses_colnames()
+        // save it to project data div
+        let html_identifier = `div#${global_project_datadiv_id}`
+        let attr_name = 'original_data_address_colnames'
+        await save_json_to_html_attr_base64str_of_gzbuffer(colname_sets_arr, html_identifier, attr_name)
+
     })
 }
 
@@ -202,93 +394,97 @@ function get_unselected_colnames(colnames_arr){
 }
 
 
-async function show_srcdata_colnames1() {
-    // list out the column names (order as appeared in the src file)
-    // read data from the html file
-    let html_identifier = `div#${global_project_datadiv_id}`
-    // console.log(97, d3.select(html_identifier).node())
-    let attr_name = `src_address_data`
-    let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+// async function show_srcdata_colnames1() {
+//     // list out the column names (order as appeared in the src file)
+//     // read data from the html file
+//     let html_identifier = `div#${global_project_datadiv_id}`
+//     // console.log(97, d3.select(html_identifier).node())
+//     let attr_name = `src_address_data`
+//     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
 
-    let src_addr_arr
+//     let src_addr_arr
 
-    // set default value for debugging
-    if (!datajson) {
-        src_addr_arr = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
-    } else {
-        src_addr_arr = datajson.data
-    }
-    let colnames_arr = src_addr_arr[0]
-    // console.log(colnames_arr)
+//     // set default value for debugging
+//     if (!datajson) {
+//         src_addr_arr = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
+//     } else {
+//         src_addr_arr = datajson.data
+//     }
+//     let colnames_arr = src_addr_arr[0]
+//     // console.log(colnames_arr)
 
-    let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
-    displaybox_d3pn.select('table#src_colnames').remove()
-    let colnames_table_d3pn = displaybox_d3pn.append('table').attrs({ 'id': 'src_colnames' })
-    let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'id': 'src_colnames' })
-    // left
-    let src_colnames_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'src_colnames' }).styles({ 'width': '40%', 'max_width': '45%' })
-    src_colnames_td_d3pn.select('select#src_colnames').remove()
-    let select_srccolnames_d3pn = src_colnames_td_d3pn.append('select').attrs({ 'id': 'src_colnames', 'multiple': true, 'size': '30' }).styles({ 'width': '99%' })
-    colnames_arr.forEach(d => {
-        select_srccolnames_d3pn.append('option').attrs({ 'id': `left_${d}`, 'value': `${d}`, 'colname': `${d}`, 'title': `${d}` }).text(`${d}`)
-    })
+//     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
+//     displaybox_d3pn.select('table#src_colnames').remove()
+//     let colnames_table_d3pn = displaybox_d3pn.append('table').attrs({ 'id': 'src_colnames' })
+//     let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'id': 'src_colnames' })
+//     // left
+//     let src_colnames_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'src_colnames' }).styles({ 'width': '40%', 'max_width': '45%' })
+//     src_colnames_td_d3pn.select('select#src_colnames').remove()
+//     let select_srccolnames_d3pn = src_colnames_td_d3pn.append('select').attrs({ 'id': 'src_colnames', 'multiple': true, 'size': '30' }).styles({ 'width': '99%' })
+//     colnames_arr.forEach(d => {
+//         select_srccolnames_d3pn.append('option').attrs({ 'id': `left_${d}`, 'value': `${d}`, 'colname': `${d}`, 'title': `${d}` }).text(`${d}`)
+//     })
 
-    // middle and right, make into one table of three rows
-    let select_columns_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'select_buttons' }).styles({ 'vertical-align': 'middle', 'padding': '5px', 'width': '50%', 'max_width': '54%' })
-    let select_columns_table_d3pn = select_columns_td_d3pn.append('table')
+//     // middle and right, make into one table of three rows
+//     let select_columns_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'select_buttons' }).styles({ 'vertical-align': 'middle', 'padding': '5px', 'width': '50%', 'max_width': '54%' })
+//     let select_columns_table_d3pn = select_columns_td_d3pn.append('table')
 
-    // add three rows
-    let col_types_arr = ['address', 'latitude', 'longitude']
-    col_types_arr.forEach(t => {
-        // add tr elements for each col type
-        let tr_d3pn = select_columns_table_d3pn.append('tr').attrs({'id': 'select_colnames_rows'})
-        // add a td for buttons
-        let td_button_d3pn = tr_d3pn.append('td').styles({'width':'8%'})
-        // add buttons
-        td_button_d3pn.append('p').text(`${t}`)
-        td_button_d3pn.append('button').text('>').on('click', () => {
-            d3.select(`select#selected_colnames_${t}`).styles({ 'display': 'inline' })
-            $(`select#src_colnames`).find(':selected').appendTo(`select#selected_colnames_${t}`);
-        })
-        td_button_d3pn.append('p')
-        td_button_d3pn.append('button').text('<').on('click', () => {
-            $(`select#selected_colnames_${t}`).find(':selected').appendTo(`select#src_colnames`);
-            // hide the selected select element if there is no options
-            let n_selected_options = d3.select(`select#selected_colnames_${t}`).selectAll('option').nodes()
-            if (!n_selected_options || n_selected_options.length === 0) {
-                d3.select(`select#selected_colnames_${t}`).styles({ 'display': 'none' })
-            }
-        })
+//     // add three rows
+//     let col_types_arr = ['address', 'latitude', 'longitude']
+//     col_types_arr.forEach(t => {
+//         // add tr elements for each col type
+//         let tr_d3pn = select_columns_table_d3pn.append('tr').attrs({'id': 'select_colnames_rows'})
+//         // add a td for buttons
+//         let td_button_d3pn = tr_d3pn.append('td').styles({'width':'8%'})
+//         // add buttons
+//         td_button_d3pn.append('p').text(`${t}`)
+//         td_button_d3pn.append('button').text('>').on('click', () => {
+//             d3.select(`select#selected_colnames_${t}`).styles({ 'display': 'inline' })
+//             $(`select#src_colnames`).find(':selected').appendTo(`select#selected_colnames_${t}`);
+//         })
+//         td_button_d3pn.append('p')
+//         td_button_d3pn.append('button').text('<').on('click', () => {
+//             $(`select#selected_colnames_${t}`).find(':selected').appendTo(`select#src_colnames`);
+//             // hide the selected select element if there is no options
+//             let n_selected_options = d3.select(`select#selected_colnames_${t}`).selectAll('option').nodes()
+//             if (!n_selected_options || n_selected_options.length === 0) {
+//                 d3.select(`select#selected_colnames_${t}`).styles({ 'display': 'none' })
+//             }
+//         })
 
-        // add a td for selected colnames
-        let td_selected_colnames_d3pn = tr_d3pn.append('td').styles({'width':'40%', 'max-width':'45%'})
-        // add a select
-        td_selected_colnames_d3pn.append('select').attrs({ 'id': `selected_colnames_${t}`, 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
+//         // add a td for selected colnames
+//         let td_selected_colnames_d3pn = tr_d3pn.append('td').styles({'width':'40%', 'max-width':'45%'})
+//         // add a select
+//         td_selected_colnames_d3pn.append('select').attrs({ 'id': `selected_colnames_${t}`, 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
     
 
-    })
+//     })
 
 
-    // let button_td_d3pn = select_buttons_table_d3pn.append('tr').append('td')
+//     // let button_td_d3pn = select_buttons_table_d3pn.append('tr').append('td')
     
 
 
-    // // right
-    // // hmmm, there would be multiple select elements, each for address, lat and long
-    // let selected_colnames_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'selected_colnames' }).styles({ 'width': '40%', 'max_width': '45%', 'border': '0px solid grey' })
-    // // in this td, add a table with three tr and tr 
-    // let selected_colnames_table_d3pn = selected_colnames_td_d3pn.append('table').styles({ 'width': '99%' })
-    // selected_colnames_table_d3pn.append('tr').append('td').text('addr').append('select').attrs({ 'id': 'selected_colnames_address', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
-    // selected_colnames_table_d3pn.append('tr').append('td').text('lat').append('select').attrs({ 'id': 'selected_colnames_latitude', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
-    // selected_colnames_table_d3pn.append('tr').append('td').text('long').append('select').attrs({ 'id': 'selected_colnames_longitude', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
+//     // // right
+//     // // hmmm, there would be multiple select elements, each for address, lat and long
+//     // let selected_colnames_td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': 'selected_colnames' }).styles({ 'width': '40%', 'max_width': '45%', 'border': '0px solid grey' })
+//     // // in this td, add a table with three tr and tr 
+//     // let selected_colnames_table_d3pn = selected_colnames_td_d3pn.append('table').styles({ 'width': '99%' })
+//     // selected_colnames_table_d3pn.append('tr').append('td').text('addr').append('select').attrs({ 'id': 'selected_colnames_address', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
+//     // selected_colnames_table_d3pn.append('tr').append('td').text('lat').append('select').attrs({ 'id': 'selected_colnames_latitude', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
+//     // selected_colnames_table_d3pn.append('tr').append('td').text('long').append('select').attrs({ 'id': 'selected_colnames_longitude', 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
 
-}
+// }
 
 
 async function test_getting_src_file() {
 
+    let html_identifier = `div#${global_project_datadiv_id}`
     let src_file_obj = await openfileAsObj()
     console.log(src_file_obj)
+
+    let attr_name0 = 'src_data_file_info'
+    await save_json_to_html_attr_base64str_of_gzbuffer(src_file_obj, html_identifier, attr_name0)
 
     let datastr = await get_datastr_from_local_fileobj(src_file_obj)
     // console.log(datastr)
@@ -339,7 +535,7 @@ async function test_getting_src_file() {
 
     // save the src json to 
 
-    let html_identifier = `div#${global_project_datadiv_id}`
+    
     // console.log(97, d3.select(html_identifier).node())
     let attr_name = `src_address_data`
     await save_json_to_html_attr_base64str_of_gzbuffer(src_datajson, html_identifier, attr_name)
@@ -1259,7 +1455,7 @@ function add_one_row_bk(col_types_arr, colnames_arr){ // use select-option not i
     buttons_td_d3pn = colnames_tr_d3pn.append('td')
     buttons_td_d3pn.append('button').text('+').on('click', ()=>{
         console.log('+ clicked')
-        add_one_row(col_types_arr, colnames_arr)
+        add_one_row_bk(col_types_arr, colnames_arr)
 
     })
     buttons_td_d3pn.append('button').text('-').on('click', (ev)=>{
