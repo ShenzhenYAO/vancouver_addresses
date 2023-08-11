@@ -1,4 +1,10 @@
 
+//     // to do
+    // list out all attrs in project data
+    // show data of each attrs
+    // make a check list for required data
+    // save json from frontend
+
 const global_geocoder_actions_dict = {
     "define file locations": define_location_of_files,
     // "load bccs csv": js_geocoder_01_load_bccs_csv,
@@ -17,6 +23,11 @@ async function define_location_of_files() {
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
     displaybox_d3pn.html('')
 
+    let lit_stage_d3pn = d3.select('div#lit_stage')
+    lit_stage_d3pn.select('div#frontend_buttons').remove()
+
+    let frontend_buttons_div_d3pn = lit_stage_d3pn.append('div').attrs({ 'id': 'frontend_buttons' })
+
     // nay... it is impossible to open a local file by its absolute path (for security concern)
 
     // displaybox_d3pn.append('label').text('Where is the file containing original addresses?').styles({ 'font-size': '12px'})
@@ -26,47 +37,240 @@ async function define_location_of_files() {
     // .on('keyup', (ev) => {
     //     if (ev.key === 'Enter') { d3.select('button#submit_fullpath_sourcefile').node().click() }
     // })
-    displaybox_d3pn.append('button').attrs({ 'id': 'open_sourcefile' }).text('open the file containing original addresses').styles({ 'margin-left': '5px' })
+    frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'open_sourcefile' }).text('open the file containing original addresses').styles({ 'margin-left': '5px' })
         .on('click', test_getting_src_file)
 
-    displaybox_d3pn.append('p')
-    displaybox_d3pn.append('button').attrs({ 'id': 'show_colnames' }).text('list out column names of the source data').styles({ 'margin-left': '5px' })
+    frontend_buttons_div_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'show_colnames' }).text('list out column names of the source data').styles({ 'margin-left': '5px' })
         .on('click', show_srcdata_colnames)
-    displaybox_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('p')
 
     // a div to select colnames
     displaybox_d3pn.append('div').attrs({ 'id': 'select_colnames' })
 
     // test reading it
-    displaybox_d3pn.append('p')
-    displaybox_d3pn.append('button').attrs({ 'id': 'get_original_addresses' }).text('get original addresses').styles({ 'margin-left': '5px' })
+    frontend_buttons_div_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'get_original_addresses' }).text('get original addresses').styles({ 'margin-left': '5px' })
         .on('click', get_original_addresses)
-    displaybox_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('p')
 
     // display the original addresses
-    displaybox_d3pn.append('p')
-    displaybox_d3pn.append('button').attrs({ 'id': 'display_original_addresses' }).text('display_original_addresses').styles({ 'margin-left': '5px' })
+    frontend_buttons_div_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'display_original_addresses' }).text('display_original_addresses').styles({ 'margin-left': '5px' })
         .on('click', display_original_addresses)
-    displaybox_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('p')
 
-    // test the address data
+    // load existing json file of std addresses
+    frontend_buttons_div_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'load_std_addresses' }).text('read existing standard addresses data').styles({ 'margin-left': '5px' })
+        .on('click', test_import_std_address_data)
+    frontend_buttons_div_d3pn.append('p')
+
+    // test get std add
+    frontend_buttons_div_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'test_get_std_geocoder_addr' }).text('test getting geocoder standard addresses').styles({ 'margin-left': '5px' })
+        .on('click', test_get_geocoder_std_addresses)
+    frontend_buttons_div_d3pn.append('p')
+
+    // to do
+    // list out all attrs in project data
+    // show data of each attrs
+    // make a check list for required data
+    // save json from frontend
 
 }
+
+// address: 100 Pender St E, Vancouver
+// query std address from frontend
+async function test_get_geocoder_std_addresses() {
+    let html_identifier = `div#${global_project_datadiv_id}`
+
+    // get the original address from the project data div
+
+    let attr_name1 = 'geocoder_original_address'
+    let datajson1 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1)
+    // console.log(datajson) 
+    // if not, ask user to prepare the original address (saved original address json, or original csv file)
+    if (!datajson1) {
+        // probably need to start from getting the original src file (e.g., a csv file)
+        // and define the colnames, and make address data again
+        await get_original_addresses()
+        return // need to pause until the src file data is loaded, the colnames selected, and the address data is made
+    }
+
+    // get the existing geocoder standard addr json from the project data div
+    let attr_name2 = `geocoder_standard_addresses`
+    let datajson2 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name2)
+    // if not, ask user whether to import from a local file
+    if (!datajson2) {
+        let confirm_import = confirm("Do you have existing standard addresses that can be imported from a local file?")
+        console.log(confirm_import)
+        if (confirm_import === true) {
+            await test_import_std_address_data()
+            datajson2 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name2)
+        } else {
+            datajson2 = Object.create(null)
+            datajson2.data=Object.create(null)
+        }
+    }
+    console.log(datajson2)
+
+
+    // loop for each original address
+    // make a refined list of address that are not in existing geocoder standard addr 
+    let original_addrs_dict = datajson1.data
+    // original_addrs_arr = original_addrs_arr.slice(0,2)
+    let original_addrs_arr = Object.keys(original_addrs_dict)
+    original_addrs_arr.sort()
+    // console.log(original_addrs_arr.length)
+
+    // get the existing orginal addresses from the std bc geo addresses data
+    let std_addrs_dict = datajson2.data
+    let existing_original_addrs_arr = Object.keys(std_addrs_dict)
+
+    // loop for the refined list and get std addr data for each
+    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_geographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
+    let count_new_address = 0
+
+    let updated_std_addrs_json = {
+        meta: {
+            "description": `${file_location}`,
+            "sources": [
+                "data from frontend"
+            ],
+            "programs": [
+                "C:/Users/syao2/AppData/Local/MyWorks/js/vancouver_addresses/backend/app/js/main.js",
+                "frontend/app/modules/geocoder/geocoder.js"
+            ]
+        },
+        data: datajson2.data
+    }
+
+
+
+    for (let i = 0; i < original_addrs_arr.length; i++) {
+        if (i !== 4000){continue}
+
+        let original_address = original_addrs_arr[i]
+        console.log(original_address)
+        // console.log(`=== original address ${i + 1} of ${original_addrs_arr.length}`)
+
+        if (existing_original_addrs_arr.includes(original_address)) {
+            // console.log(`${original_address} has been searched.`); 
+            continue;
+        }
+
+        count_new_address++
+        // console.log(`${original_address} is new. Getting standard geo BC address...`)
+
+        // search and get the std address
+        let search_addr = original_address.replace('&', ' and ')
+        let std_addr_json = await get_bc_geocoder(search_addr, null)
+        if (!std_addr_json) { std_addr_json = { features: [{}] } }
+        let refined_std_addr_json = { original_data: original_addrs_dict[original_address], geocoder_bc: std_addr_json.features } // only save the refined data, which is relevant and is saved in the key features
+        // std_addrs_dict[original_address] = refined_std_addr_json
+
+        // add it to the updated_std_addrs_json
+        updated_std_addrs_json['data'][original_address] = refined_std_addr_json
+
+        if (i / 500 === Math.floor(i / 500)) {
+            // save to the project data div
+            await save_json_to_html_attr_base64str_of_gzbuffer(updated_std_addrs_json, html_identifier, attr_name2) // save the new json (with meta data)
+           // // also, save the std_addrs_dict to frontend\testdata using as a backend nodejs task
+            // await save_json_to_backend(file_location, std_addrs_dict) // but send to backend the dict only (without meta data as meta data will be added at backend)
+        }
+    }
+
+    console.log('new searches', count_new_address, updated_std_addrs_json)
+    await save_json_to_html_attr_base64str_of_gzbuffer(updated_std_addrs_json, html_identifier, attr_name2)
+
+}
+
+
+
+async function test_import_std_address_data() {
+
+    let html_identifier = `div#${global_project_datadiv_id}`
+    let src_file_obj = await openfileAsObj()
+    console.log(src_file_obj)
+
+    let datastr = await get_datastr_from_local_fileobj(src_file_obj)
+    // console.log(datastr)
+
+
+    let filenamesegs_arr = src_file_obj.name.split('.')
+    let extname = filenamesegs_arr[filenamesegs_arr.length - 1]
+    console.log(extname)
+
+    src_datajson = Object.create(null)
+
+    let xlsx_filetypes_arr = ['xlsx', 'xlsm']
+    if (xlsx_filetypes_arr.includes(extname)) {
+        // // https://www.npmjs.com/package/exceljs?utm_source=cdnjs&utm_medium=cdnjs_link&utm_campaign=cdnjs_library#reading-csv
+        // let databuffer = convert_base64str_to_buffer(datastr)
+        // let workbook = new ExcelJS.Workbook()
+        // await workbook.xlsx.load(databuffer)
+        // console.log('55', workbook)
+        // workbook.eachSheet(function (worksheet, sheetId) {
+        //     // ...
+        //     console.log(sheetId, worksheet.name)
+        // });
+
+        // ask which worksheets to get data from
+
+        // for each sheet, ask // ask which row contains the column names
+
+        // what column names to get data from
+
+
+    }
+    else if (extname === 'csv') {
+
+        // ExcelJS does not work well with csv files (need to convert datastr to stream, whic cannot be done at client side!)
+        // use papaparse instead https://www.papaparse.com/docs#local-files
+        let parsed_dict = Papa.parse(datastr,
+            {
+                complete: function (d) {
+                    // console.log('completed', d)
+                }
+            })
+
+        src_datajson['data'] = parsed_dict.data
+
+        // list out the colnames and ask what columns to select
+    } else if (extname === 'json') {
+        // read as string
+
+        src_datajson = JSON.parse(datastr)
+    }
+
+    if (!src_datajson.data) { console.log('there is no data loaded'); return }
+
+    console.log(src_datajson)
+    // save the src json to project data div
+    // console.log(97, d3.select(html_identifier).node())
+    let attr_name = `geocoder_standard_addresses`
+    await save_json_to_html_attr_base64str_of_gzbuffer(src_datajson, html_identifier, attr_name)
+
+}
+
+
 
 async function display_original_addresses() { // note: similar to display_bccs_original_addresses
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name = 'geocoder_original_address'
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+    console.log(datajson)
 
-    // if there is nothing saved in the html_identifier, try to load it from backend
+    // if not, ask user to prepare the original address (saved original address json, or original csv file)
     if (!datajson) {
         // probably need to start from getting the original src file (e.g., a csv file)
         // and define the colnames, and make address data again
-        await  get_original_addresses()
+        await get_original_addresses()
         return // need to pause until the src file data is loaded, the colnames selected, and the address data is made
     }
 
-    // console.log(datajson) // like {addr1: ["lat1, long1", ...]}
+    console.log(datajson) // like {addr1: ["lat1, long1", ...]}
     if (!datajson) { return }
     // display it as a list 
     let display_div_d3pn = d3.select('div#display')
@@ -84,13 +288,13 @@ async function display_original_addresses() { // note: similar to display_bccs_o
 }
 
 
-async function get_original_addresses(){ //
+async function get_original_addresses() { //
 
     // load original data
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name1 = 'src_address_data'
     let src_address_data_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1) // like[[colnames..], []]
-    if (! src_address_data_json){ 
+    if (!src_address_data_json) {
         await test_getting_src_file()
         src_address_data_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1) // like[[colnames..], []]
     }
@@ -105,46 +309,49 @@ async function get_original_addresses(){ //
     let colname_sets_arr = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attrname2) // like [{address: , latitude:, longitude:}, {}]
     // console.log(colname_sets_arr)
 
-    if (! colname_sets_arr ){
+    if (!colname_sets_arr) {
         await show_srcdata_colnames()
+        alert('please select the colume names, and click the button "get original addresses" again to prepare address data.')
         return
     }
 
     // loop for each colname_sets
-    let original_addrs_dict = Object.create(null) 
-    colname_sets_arr.forEach(c=>{
+    let original_addrs_dict = Object.create(null)
+    colname_sets_arr.forEach(c => {
         let colname_address = c.address
         let index_colname_address = colnames_in_original_data_arr.indexOf(colname_address)
-        let original_addresses_arr = src_address_data_arr.map(x=>x[index_colname_address])
+        let original_addresses_arr = src_address_data_arr.map(x => x[index_colname_address])
         // console.log(original_addresses_arr)
 
         let colname_lat = c.latitude
         let index_colname_lat = colnames_in_original_data_arr.indexOf(colname_lat)
-        let original_lats_arr = src_address_data_arr.map(x=>x[index_colname_lat])
+        let original_lats_arr = src_address_data_arr.map(x => x[index_colname_lat])
 
 
         let colname_long = c.longitude
         let index_colname_long = colnames_in_original_data_arr.indexOf(colname_long)
         // console.log(index_colname_long)
-        let original_longs_arr = src_address_data_arr.map(x=>x[index_colname_long])
+        let original_longs_arr = src_address_data_arr.map(x => x[index_colname_long])
         // console.log(original_longs_arr)
 
-        original_addresses_arr.forEach((x, i)=>{
-            if (i===0){return} // skip the first row as it is the col names
+        original_addresses_arr.forEach((x, i) => {
+            if (i === 0) { return } // skip the first row as it is the col names
             let addr_value = original_addresses_arr[i]
-            if (! addr_value || addr_value.trim().length===0){return}
-            let lat_value = original_lats_arr[i]?original_lats_arr[i]:''
+            if ((! addr_value) || (addr_value.trim().length ===0 || addr_value.trim() === '-')) {return} // need to work on more exceptions
+            addr_value=addr_value.trim()
+            if (!addr_value || addr_value.trim().length === 0) { return }
+            let lat_value = original_lats_arr[i] ? original_lats_arr[i] : ''
             // console.log(original_longs_arr[i])
-            let long_value = original_longs_arr[i]?original_longs_arr[i]:''
-            let gps_str=''
-            if (lat_value.length>0 && long_value.length>0){
+            let long_value = original_longs_arr[i] ? original_longs_arr[i] : ''
+            let gps_str = ''
+            if (lat_value.length > 0 && long_value.length > 0) {
                 gps_str = `${lat_value},${long_value}`
             }
-            if (! original_addrs_dict[addr_value]){original_addrs_dict[addr_value] = {gps:[gps_str]}}
-            else{
-                if (! original_addrs_dict[addr_value]['gps'].includes(gps_str)){original_addrs_dict[addr_value]['gps'].push(gps_str)}
+            if (!original_addrs_dict[addr_value]) { original_addrs_dict[addr_value] = { gps: [gps_str] } }
+            else {
+                if (!original_addrs_dict[addr_value]['gps'].includes(gps_str)) { original_addrs_dict[addr_value]['gps'].push(gps_str) }
             }
-            
+
         })
     })
     console.log(original_addrs_dict)
@@ -152,24 +359,24 @@ async function get_original_addresses(){ //
     await update_original_addresses_at_frontend(original_addrs_dict)
 }
 
-async function update_original_addresses_at_frontend(new_original_addrs_dict){
+async function update_original_addresses_at_frontend(new_original_addrs_dict) {
 
     // make meta data info
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name0 = 'src_data_file_info'
     let src_file_info_dict = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name0)
-    
-    let meta={
-        description:'distinct addresses (with gps lat/long data) from home, injury, and death locations',
-        program:['frontend/app/modules/geocoder/geocoder.js'],
+
+    let meta = {
+        description: 'distinct addresses (with gps lat/long data) from home, injury, and death locations',
+        program: ['frontend/app/modules/geocoder/geocoder.js'],
         source: src_file_info_dict
     }
 
     // load the existing original_address data
     let attr_name1 = 'geocoder_original_address'
     let datajson1 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name1)
-    let original_addrs_dict = Object.create(null) 
-    if (datajson1){original_addrs_dict = datajson1['data']}
+    let original_addrs_dict = Object.create(null)
+    if (datajson1) { original_addrs_dict = datajson1['data'] }
 
     // load the new 
     let updated_datajson = Object.create(null)
@@ -177,14 +384,14 @@ async function update_original_addresses_at_frontend(new_original_addrs_dict){
     updated_datajson['data'] = original_addrs_dict
 
     let new_addrs_arr = Object.keys(new_original_addrs_dict)
-    new_addrs_arr.forEach(a=>{
-        if (! updated_datajson['data'][a]){
+    new_addrs_arr.forEach(a => {
+        if (!updated_datajson['data'][a]) {
             console.log('adding address dict ===')
             updated_datajson['data'][a] = new_original_addrs_dict[a]
         }
         else {
-            new_original_addrs_dict[a]['gps'].forEach(g=>{
-                if ( (! updated_datajson['data'][a]['gps']) || (! updated_datajson['data'][a]['gps'].includes(g))){
+            new_original_addrs_dict[a]['gps'].forEach(g => {
+                if ((!updated_datajson['data'][a]['gps']) || (!updated_datajson['data'][a]['gps'].includes(g))) {
                     console.log('add a gps ====')
                     updated_datajson['data'][a]['gps'].push(g)
                 }
@@ -199,7 +406,7 @@ async function update_original_addresses_at_frontend(new_original_addrs_dict){
 
 
 async function show_srcdata_colnames() {
-// list out the column names (order as appeared in the src file)
+    // list out the column names (order as appeared in the src file)
     // read data from the html file
     let html_identifier = `div#${global_project_datadiv_id}`
     // console.log(97, d3.select(html_identifier).node())
@@ -223,43 +430,43 @@ async function show_srcdata_colnames() {
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
     let select_colnames_box_d3pn = d3.select('div#select_colnames')
     select_colnames_box_d3pn.select('table#src_colnames').remove()
-    let colnames_table_d3pn = select_colnames_box_d3pn.append('table').attrs({ 'id': 'src_colnames' }).styles({'font-size':'12px', 'width':'99%'})
+    let colnames_table_d3pn = select_colnames_box_d3pn.append('table').attrs({ 'id': 'src_colnames' }).styles({ 'font-size': '12px', 'width': '99%' })
     let colnames_titletr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'id': 'src_colnames_title' })
     let col_types_arr = ['address', 'latitude', 'longitude']
     col_types_arr.forEach(t => {
         let width = '30%'
-        if (t === 'address'){width='30%'}
-        colnames_titletr_d3pn.append('td').text(`${t}`).styles({'width': width})
+        if (t === 'address') { width = '30%' }
+        colnames_titletr_d3pn.append('td').text(`${t}`).styles({ 'width': width })
     })
     let buttons_td_d3pn = colnames_titletr_d3pn.append('td')
 
 
     // add the first row
     await add_one_row(col_types_arr, colnames_arr)
-    
+
 
 }
 
-function make_original_addresses_colnames(){ 
+function make_original_addresses_colnames() {
 
-    let colname_sets_arr =[] // [{address:, lat:, long:}]
+    let colname_sets_arr = [] // [{address:, lat:, long:}]
     // get colnames from the input
     let trs_arr = d3.selectAll('tr.colnames_tr').nodes()
-    trs_arr.forEach(r=>{
+    trs_arr.forEach(r => {
         let tr_d3pn = d3.select(r)
         // let rowi = r.attr('rowi')
         let data_type_arr = ['address', 'latitude', 'longitude']
-        let tmp_dict=Object.create(null)
-        data_type_arr.forEach(t=>{
+        let tmp_dict = Object.create(null)
+        data_type_arr.forEach(t => {
             let input_dom_this_datatype = tr_d3pn.select(`input#${t}`).node()
-            tmp_dict[t] =  input_dom_this_datatype.value
+            tmp_dict[t] = input_dom_this_datatype.value
         })
         colname_sets_arr.push(tmp_dict)
     })
     return colname_sets_arr
 }
 
-async function add_one_row(col_types_arr, colnames_arr){ // use input - datalist, not select-options
+async function add_one_row(col_types_arr, colnames_arr) { // use input - datalist, not select-options
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
     let colnames_table_d3pn = displaybox_d3pn.select('table#src_colnames')
 
@@ -269,72 +476,72 @@ async function add_one_row(col_types_arr, colnames_arr){ // use input - datalist
     // console.log(tr_doms_length)
 
     // add a new tr
-    let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({'class':'colnames_tr', 'rowi': tr_doms_length})
+    let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'class': 'colnames_tr', 'rowi': tr_doms_length })
     col_types_arr.forEach(t => {
-        let td_d3pn= colnames_tr_d3pn.append('td').attrs({'id':`${t}`, 'rowi':tr_doms_length})
+        let td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': `${t}`, 'rowi': tr_doms_length })
 
-        let select_d3pn = td_d3pn.append('input').attrs({'id': `${t}`, 'class':'colnames', 'type':'text', 'list':`${t}_colnames_${tr_doms_length}`}).styles({'width':'80%'})
-        let datalist_d3pn = td_d3pn.append('datalist').attrs({'id':`${t}_colnames_${tr_doms_length}`})
+        let select_d3pn = td_d3pn.append('input').attrs({ 'id': `${t}`, 'class': 'colnames', 'type': 'text', 'list': `${t}_colnames_${tr_doms_length}` }).styles({ 'width': '80%' })
+        let datalist_d3pn = td_d3pn.append('datalist').attrs({ 'id': `${t}_colnames_${tr_doms_length}` })
         select_d3pn
-        .on('blur', async (ev)=>{ // blur -- losing focus of this element, focusout -- losing focus of this element and all its descendants
+            .on('blur', async (ev) => { // blur -- losing focus of this element, focusout -- losing focus of this element and all its descendants
 
-            let inputvalue = ev.target.value
-            if (! colnames_arr.includes(inputvalue) && inputvalue.length>''){
-                console.log('invalid input:', inputvalue)
-                let previous_inputvalue = ev.target.getAttribute('previous_inputvalue')
-                if (! previous_inputvalue) {
-                    ev.target.value = ''
-                } else {
-                    ev.target.value = previous_inputvalue
+                let inputvalue = ev.target.value
+                if (!colnames_arr.includes(inputvalue) && inputvalue.length > '') {
+                    console.log('invalid input:', inputvalue)
+                    let previous_inputvalue = ev.target.getAttribute('previous_inputvalue')
+                    if (!previous_inputvalue) {
+                        ev.target.value = ''
+                    } else {
+                        ev.target.value = previous_inputvalue
+                    }
                 }
-            }
-            ev.target.setAttribute('previous_inputvalue', ev.target.value)
+                ev.target.setAttribute('previous_inputvalue', ev.target.value)
 
-            // console.log('changed')
-            // check all values in the select elements
-            let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
-            // update all the select elements options
-            update_colnames_select_elements(unselected_colnames_arr)  
-            
-            // save selected_colnames_arr {address:{gps: [lat, long]}}
-            let colname_sets_arr = make_original_addresses_colnames()
-            // save it to project data div
-            let html_identifier = `div#${global_project_datadiv_id}`
-            let attr_name = 'original_data_address_colnames'
-            await save_json_to_html_attr_base64str_of_gzbuffer(colname_sets_arr, html_identifier, attr_name)
+                // console.log('changed')
+                // check all values in the select elements
+                let unselected_colnames_arr = get_unselected_colnames(colnames_arr)
+                // update all the select elements options
+                update_colnames_select_elements(unselected_colnames_arr)
 
-        })
+                // save selected_colnames_arr {address:{gps: [lat, long]}}
+                let colname_sets_arr = make_original_addresses_colnames()
+                // save it to project data div
+                let html_identifier = `div#${global_project_datadiv_id}`
+                let attr_name = 'original_data_address_colnames'
+                await save_json_to_html_attr_base64str_of_gzbuffer(colname_sets_arr, html_identifier, attr_name)
+
+            })
 
         // datalist_d3pn.append('option').attrs({'value':'', 'selected':true}).text('')
-        let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+        let unselected_colnames_arr = get_unselected_colnames(colnames_arr)
         // console.log(unselected_colnames_arr)
-        unselected_colnames_arr.forEach(d=>[
-            datalist_d3pn.append('option').attrs({'value': `${d}`, 'title':`${d}`}).text(`${d}`)
+        unselected_colnames_arr.forEach(d => [
+            datalist_d3pn.append('option').attrs({ 'value': `${d}`, 'title': `${d}` }).text(`${d}`)
         ])
         // console.log(td_d3pn.node())
     })
     buttons_td_d3pn = colnames_tr_d3pn.append('td')
-    buttons_td_d3pn.append('button').text('+').on('click', async ()=>{
+    buttons_td_d3pn.append('button').text('+').on('click', async () => {
         // console.log('+ clicked')
         await add_one_row(col_types_arr, colnames_arr)
     })
-    buttons_td_d3pn.append('button').text('-').on('click', async (ev)=>{
+    buttons_td_d3pn.append('button').text('-').on('click', async (ev) => {
         let thisbutton_dom = ev.target
         // determine the tr where thisbutton_dom is in (.parent is a td, .parent.parent is the tr)
         let tr_of_thisbutton_dom = thisbutton_dom.parentElement.parentElement
         let tr_rowi = parseInt(tr_of_thisbutton_dom.getAttribute('rowi'))
-        if (tr_rowi>0) {colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()[tr_rowi].remove()}
-        let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+        if (tr_rowi > 0) { colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()[tr_rowi].remove() }
+        let unselected_colnames_arr = get_unselected_colnames(colnames_arr)
         update_colnames_select_elements(unselected_colnames_arr)
         // need to update the rowi of the following tr, td, input.colnames, and datalist
-        colnames_table_d3pn.selectAll('tr.colnames_tr').nodes().forEach((r,i)=>{
-            let rowi=i
-            d3.select(r).attrs({'rowi':rowi})
-            d3.select(r).select('td').attrs({'rowi':rowi})
+        colnames_table_d3pn.selectAll('tr.colnames_tr').nodes().forEach((r, i) => {
+            let rowi = i
+            d3.select(r).attrs({ 'rowi': rowi })
+            d3.select(r).select('td').attrs({ 'rowi': rowi })
             let type = d3.select(r).select('td').attr('id') // like address, lat, long
-            let x =`${type}_colnames_${rowi}`
-            d3.select(r).select('td').select('input.colnames').attrs({'list':`${x}`})
-            d3.select(r).select('td').select('datalist').attrs({'id':`${x}`})
+            let x = `${type}_colnames_${rowi}`
+            d3.select(r).select('td').select('input.colnames').attrs({ 'list': `${x}` })
+            d3.select(r).select('td').select('datalist').attrs({ 'id': `${x}` })
         })
 
         // save selected_colnames_arr {address:{gps: [lat, long]}}
@@ -350,11 +557,11 @@ async function add_one_row(col_types_arr, colnames_arr){ // use input - datalist
 
 
 
-function update_colnames_select_elements(unselected_colnames_arr){
+function update_colnames_select_elements(unselected_colnames_arr) {
     // console.log('update colnames select elements=====')
     let select_doms_arr = d3.selectAll('input.colnames').nodes()
     // console.log(select_doms_arr)
-    select_doms_arr.forEach(s=>{
+    select_doms_arr.forEach(s => {
         // if (s === ev.target) {console.log ('skip the current select'); return}
         let select_d3pn = d3.select(s)
         let td_d3pn = d3.select(s.parentElement)
@@ -366,31 +573,31 @@ function update_colnames_select_elements(unselected_colnames_arr){
         // console.log(current_select_value)
         datalist_d3pn.selectAll('option').remove()
         // datalist_d3pn.append('option').attrs({'value':''}).text('')                
-        let unselected_colnames_thisselect_arr=[current_select_value, ...unselected_colnames_arr]
-        unselected_colnames_thisselect_arr = unselected_colnames_thisselect_arr.filter(x=>x.length>0)
+        let unselected_colnames_thisselect_arr = [current_select_value, ...unselected_colnames_arr]
+        unselected_colnames_thisselect_arr = unselected_colnames_thisselect_arr.filter(x => x.length > 0)
         // console.log(unselected_colnames_thisselect_arr)
-        unselected_colnames_thisselect_arr.forEach(c=>{
-            datalist_d3pn.append('option').attrs({'id':`${c}`, 'value':`${c}`, 'title':`${c}`}).text(`${c}`)
+        unselected_colnames_thisselect_arr.forEach(c => {
+            datalist_d3pn.append('option').attrs({ 'id': `${c}`, 'value': `${c}`, 'title': `${c}` }).text(`${c}`)
         })
         // console.log(datalist_d3pn.node())
         s.value = current_select_value
     })
 }
 
-function get_unselected_colnames(colnames_arr){
+function get_unselected_colnames(colnames_arr) {
     let selected_colnames_arr = []
     let colname_select_doms_arr = d3.selectAll('input.colnames').nodes()
-    colname_select_doms_arr.forEach(c=>{
+    colname_select_doms_arr.forEach(c => {
         let select_colname = c.value
         // console.log(c.value)
-        if (select_colname.length > 0 && ! selected_colnames_arr.includes(select_colname)){selected_colnames_arr.push(select_colname)}
+        if (select_colname.length > 0 && !selected_colnames_arr.includes(select_colname)) { selected_colnames_arr.push(select_colname) }
     })
     // console.log(selected_colnames_arr)
 
     // remove the selected value from the unselected 
-    let unselected_colnames_arr = colnames_arr.filter(x=> ! selected_colnames_arr.includes(x) && x.length >0)
+    let unselected_colnames_arr = colnames_arr.filter(x => !selected_colnames_arr.includes(x) && x.length > 0)
     // console.log(unselected_colnames_arr)
-    return unselected_colnames_arr   
+    return unselected_colnames_arr
 }
 
 
@@ -456,13 +663,13 @@ function get_unselected_colnames(colnames_arr){
 //         let td_selected_colnames_d3pn = tr_d3pn.append('td').styles({'width':'40%', 'max-width':'45%'})
 //         // add a select
 //         td_selected_colnames_d3pn.append('select').attrs({ 'id': `selected_colnames_${t}`, 'multiple': true, 'size': '10' }).styles({ 'display': 'none', 'width': '99%' })
-    
+
 
 //     })
 
 
 //     // let button_td_d3pn = select_buttons_table_d3pn.append('tr').append('td')
-    
+
 
 
 //     // // right
@@ -535,7 +742,7 @@ async function test_getting_src_file() {
 
     // save the src json to 
 
-    
+
     // console.log(97, d3.select(html_identifier).node())
     let attr_name = `src_address_data`
     await save_json_to_html_attr_base64str_of_gzbuffer(src_datajson, html_identifier, attr_name)
@@ -748,7 +955,6 @@ async function js_geocoder_01a_load_geocoder_bc_bccs_standard_address_before_rev
 }
 
 async function test_get_bc_geocoder() {
-
 
     // get the original addresses
     let html_identifier = `div#${global_project_datadiv_id}`
@@ -1421,7 +1627,7 @@ function get_poor_matches(data, conditions_arr) {
 }
 
 
-function add_one_row_bk(col_types_arr, colnames_arr){ // use select-option not input-datalist
+function add_one_row_bk(col_types_arr, colnames_arr) { // use select-option not input-datalist
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
     let colnames_table_d3pn = displaybox_d3pn.select('table#src_colnames')
 
@@ -1431,42 +1637,42 @@ function add_one_row_bk(col_types_arr, colnames_arr){ // use select-option not i
     console.log(tr_doms_length)
 
     // add a new tr
-    let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({'class':'colnames_tr', 'rowi': tr_doms_length})
+    let colnames_tr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'class': 'colnames_tr', 'rowi': tr_doms_length })
     col_types_arr.forEach(t => {
-        let td_d3pn= colnames_tr_d3pn.append('td').attrs({'id':`${t}`})
+        let td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': `${t}` })
 
-        let select_d3pn = td_d3pn.append('select').attrs({'id': `${t}`, 'class':'colnames'}).styles({'width':'80%'})
-        .on('input', (ev)=>{
-            console.log('changed')
+        let select_d3pn = td_d3pn.append('select').attrs({ 'id': `${t}`, 'class': 'colnames' }).styles({ 'width': '80%' })
+            .on('input', (ev) => {
+                console.log('changed')
 
-            // check all values in the select elements
-            let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+                // check all values in the select elements
+                let unselected_colnames_arr = get_unselected_colnames(colnames_arr)
 
-            // update all the select elements options
-            update_colnames_select_elements(unselected_colnames_arr)
-           
-        })
-        select_d3pn.append('option').attrs({'value':'', 'selected':true}).text('')
-        let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
-        unselected_colnames_arr.forEach(d=>[
-            select_d3pn.append('option').attrs({'value': `${d}`}).text(`${d}`)
+                // update all the select elements options
+                update_colnames_select_elements(unselected_colnames_arr)
+
+            })
+        select_d3pn.append('option').attrs({ 'value': '', 'selected': true }).text('')
+        let unselected_colnames_arr = get_unselected_colnames(colnames_arr)
+        unselected_colnames_arr.forEach(d => [
+            select_d3pn.append('option').attrs({ 'value': `${d}` }).text(`${d}`)
         ])
     })
     buttons_td_d3pn = colnames_tr_d3pn.append('td')
-    buttons_td_d3pn.append('button').text('+').on('click', ()=>{
+    buttons_td_d3pn.append('button').text('+').on('click', () => {
         console.log('+ clicked')
         add_one_row_bk(col_types_arr, colnames_arr)
 
     })
-    buttons_td_d3pn.append('button').text('-').on('click', (ev)=>{
+    buttons_td_d3pn.append('button').text('-').on('click', (ev) => {
         let thisbutton_dom = ev.target
         // determine the tr where thisbutton_dom is in (.parent is a td, .parent.parent is the tr)
 
         let tr_of_thisbutton_dom = thisbutton_dom.parentElement.parentElement
         let tr_rowi = parseInt(tr_of_thisbutton_dom.getAttribute('rowi'))
-        if (tr_rowi>0) {colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()[tr_rowi].remove()}
+        if (tr_rowi > 0) { colnames_table_d3pn.selectAll('tr.colnames_tr').nodes()[tr_rowi].remove() }
 
-        let unselected_colnames_arr= get_unselected_colnames(colnames_arr)
+        let unselected_colnames_arr = get_unselected_colnames(colnames_arr)
         update_colnames_select_elements(unselected_colnames_arr)
     })
 }
