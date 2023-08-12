@@ -357,7 +357,12 @@ async function get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, at
     let datajson = null
     if (base64str){
         let gzbuffer = convert_base64str_to_buffer(base64str)
+        // if (attr_name === 'src_data_file_info') {
+        //     // console.log(base64str)
+        //     // console.log(gzbuffer)
+        // }
         datajson = convert_gzbuffer_to_json(gzbuffer)
+        // console.log(datajson)
     }
     return datajson
 }
