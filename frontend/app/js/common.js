@@ -62,7 +62,9 @@ async function makeElements_mainpage() {
 
 function set_actions_nav_selections() {
     const nav_select_actions_dict = {
-       "geocoder addresses" : makepage_geocoder
+       "geocoder addresses" : makepage_geocoder,
+       "load project": load_project_data_as_gzjson_frontend,
+       "save project": save_project_data_as_gzjson_frontend
     }
 
     // # get all nav select elements 
@@ -76,6 +78,51 @@ function set_actions_nav_selections() {
             if (action_function){d3.select(nav_select_ele).on('click', action_function)}
         }
     }
+}
+
+async function load_project_data_as_gzjson_frontend(){
+    let srcjson = await get_source_json()
+    // console.log(srcjson)
+
+    let projectdatajson_dict = srcjson.data
+
+    let attrs_arr = Object.keys(projectdatajson_dict)
+    let html_identifier = `div#${global_project_datadiv_id}`
+    for (let i = 0; i < attrs_arr.length; i++){
+        let thisattr = attrs_arr[i]
+        let datajson_thisattr = projectdatajson_dict[thisattr]
+        await save_json_to_html_attr_base64str_of_gzbuffer(datajson_thisattr, html_identifier, attrs_arr)
+    }
+
+}
+
+async function save_project_data_as_gzjson_frontend(){
+    let project_json_data =Object.create(null)
+
+    let html_identifier = `div#${global_project_datadiv_id}`
+    // get all attr names
+    let project_data_attrs_arr = d3.select(html_identifier).node().getAttributeNames()
+    let exclude_attrs = ['id', 'class', 'style']
+    project_data_attrs_arr = project_data_attrs_arr.filter(x => (! exclude_attrs.includes(x)))
+    project_data_attrs_arr.sort()
+    // project_data_attrs_arr.forEach(async (a)=>{ // forEach is not done when making project_json
+    for (let i=0; i<project_data_attrs_arr.length; i++){
+        let thisattr = project_data_attrs_arr[i]
+        let datajson_thisattr = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, thisattr)
+        project_json_data[thisattr] = datajson_thisattr
+    }
+    console.log(project_json_data)
+
+    let currentTime = new Date()
+    let datetime_stampstr = make_date_time_stamp(currentTime)
+
+    let meta = {
+        program: "frontend/app/js/common.js",
+        datetime:"datetime_stampstr"
+    }
+    let project_json = {meta:meta, data: project_json_data}
+    let project_json_gzbuffer_str = await json_to_gzbuffer_frontend(project_json)
+    await savefile_frontend(project_json_gzbuffer_str, filename='project1.getstdaddr')
 }
 
 
@@ -486,5 +533,147 @@ async function openfileAsObj() {
 
 
 /////////////////////////////////////////////////////
+
+// same as in project scholar, save txt (including stringified json) at frontend
+// Note: save gzbuffer to local file is the same as save text file or json file
+async function savefile_frontend(textstr, filename=null) {
+
+    if (!filename){filename='test.txt'}
+    let a = d3.select('body').append('a').node()
+    a.style = "display: none";
+    await savefileblob_frontend(textstr, filename, a)
+    a.remove()
+
+} // SaveNetworkJson()
+
+async function json_to_gzbuffer_frontend(datajson) {
+    let datajson_str = JSON.stringify(datajson)
+
+    let targetgzbuffer = await pako.gzip(datajson_str) // or gzip().buffer, same
+    // console.log(targetgzbuffer)
+
+    return targetgzbuffer
+
+} //save_processed_textjson
+
+
+
+// save a file from frontend
+async function savefileblob_frontend(textstr, fileName, a) {
+
+    /*create a variable called 'json', to make the object 'data' into plain text*/
+    let
+        // json = JSON.stringify(data),
+        json = textstr // the input data is already a text string! Do not stringify it again
+    /*create a blob object
+        a blob is a file like object.
+        https://developer.mozilla.org/en-US/docs/Web/API/Blob
+        make it a binary type (octet/strem)
+    */
+    blob = new Blob([json], { type: "octet/stream" }),
+        /*Pop up a window, for saving the created blob object*/
+        url = window.URL.createObjectURL(blob);
+
+    /*make the link of the a element as the url*/
+    a.href = url;
+    /*set the name of the downloaded file*/
+    a.download = fileName;
+    /*click to go to the url, i.e., to open the SavaAs window*/
+    a.click();
+    /*display the savaAs window*/
+    window.URL.revokeObjectURL(url);
+}; // saveFile
+
+
+// get data from json or json.gz file
+async function get_source_json() {
+    let srcdatajson
+    // open a dialog and get the file object
+    let src_file_obj = await openfileAsObj()
+
+    // note: src_file_obj is not a sterializable json and cannot be saved to project data div
+    let src_file_dict = Object.create(null)
+    let keys_arr = ['lastModified', 'name', 'lastModifiedDate', 'size', 'type']
+    keys_arr.forEach(k=>{
+        src_file_dict[k] = src_file_obj[k]
+    })
+
+    let filenamesegs_arr = src_file_obj.name.split('.')
+    let extname = filenamesegs_arr[filenamesegs_arr.length - 1]
+    console.log(extname)
+
+    // console.log(extname)
+    let readfileresult_dict =Object.create(null)
+    if (extname === 'json') { 
+        readfileresult_dict= await readjsonfile(src_file_obj) 
+    }
+    else if (extname === 'gz' || extname === 'getstdaddr') { // .getstdaddr is indeed a .gz file
+        readfileresult_dict = await readgzfile(src_file_obj) 
+    }
+
+    srcdatajson = JSON.parse(readfileresult_dict.textjson_str)
+
+    return srcdatajson
+
+} //
+
+async function readjsonfile(fileobj) {
+    let filename = fileobj.name
+    let filenamesegs_arr = filename.split('.')
+    let filebasename = filenamesegs_arr.filter((x, i) => i < filenamesegs_arr.length - 1).join('.')
+
+    let promise = new Promise(
+        (resolve) => {
+            let reader = new FileReader();
+            reader.readAsText(fileobj);
+            reader.onloadend = async function (e) {
+                let jsonstr = e.target.result;
+                // console.log(jsonstr)
+                resolve(jsonstr)
+            }
+        }
+    )
+    let textjson_str = await promise.then(d => { return d })
+    return {textjson_str:textjson_str, filebasename: filebasename}
+
+
+} // readjsonfile
+
+// readgzfile from a fileobj
+async function readgzfile(fileobj) {
+    let filename = fileobj.name
+    let filenamesegs_arr = filename.split('.')
+    let filebasename = filenamesegs_arr.filter((x, i) => i < filenamesegs_arr.length - 2).join('.')
+    // console.log(filebasename)
+    let promise = new Promise(
+        (resolve) => {
+            let reader = new FileReader();
+            reader.readAsArrayBuffer(fileobj); // instead of readAsBinaryString
+            reader.onloadend = async function (e) {
+                let gzbuffer = e.target.result;
+                // console.log(gzbuffer)
+                resolve(gzbuffer)
+            }
+        }
+    )
+    let gzbuffer = await promise.then(d => { return d })
+    let textjson_str = pako.ungzip(gzbuffer, { 'to': 'string' }); // use pako to convert the buffer to string
+
+    return {textjson_str:textjson_str, filebasename: filebasename}
+
+} // readgzfile
+
+function make_date_time_stamp(currentTime) {
+    let year = currentTime.toLocaleString('default', { year: 'numeric' })
+    let month = currentTime.toLocaleString('default', { month: "2-digit" })
+    let day = currentTime.toLocaleString('default', { day: "2-digit" })
+    let hours = currentTime.toLocaleString('default', { hour: '2-digit', hourCycle: 'h23' })
+    let minutes = currentTime.toLocaleString('default', { minute: "2-digit" })
+    let seconds = currentTime.toLocaleString('default', { second: "2-digit" })
+    let datetime_stampstr = `${year}${month}${day}${hours}${minutes}${seconds}`
+    return datetime_stampstr
+}
+
+
 
 

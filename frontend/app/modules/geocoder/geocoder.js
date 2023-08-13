@@ -1058,6 +1058,8 @@ function readlocalbinaryfile(thefileobj, callback_whendoneDosomething) { // the 
     newreaderinstance.onload = callback_whendoneDosomething; // when the loading is done, run the call back function defined in the readfile instance
 };
 
+
+
 async function makepage_geocoder() {
 
     d3.select('div#stage').html()
