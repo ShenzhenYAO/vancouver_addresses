@@ -1,9 +1,7 @@
 
 //     // to do
-    // list out all attrs in project data
-    // show data of each attrs
-    // make a check list for required data
-    // save json from frontend
+// make a check list for required data
+
 
 const global_geocoder_actions_dict = {
     "define file locations": define_location_of_files,
@@ -71,8 +69,8 @@ async function define_location_of_files() {
     frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'test_get_std_geocoder_addr' }).text('test getting geocoder standard addresses').styles({ 'margin-left': '5px' })
         .on('click', test_get_geocoder_std_addresses)
 
-    frontend_buttons_div_d3pn.append('label').attrs({ 'id': 'additional_search_str' }).styles({ 'margin-left': '5px' , 'font-size':'12px'}).text('additional search string')
-    frontend_buttons_div_d3pn.append('input').attrs({ 'id': 'additional_search_str' }).styles({ 'margin-left': '5px' }).node().value=''
+    frontend_buttons_div_d3pn.append('label').attrs({ 'id': 'additional_search_str' }).styles({ 'margin-left': '5px', 'font-size': '12px' }).text('additional search string')
+    frontend_buttons_div_d3pn.append('input').attrs({ 'id': 'additional_search_str' }).styles({ 'margin-left': '5px' }).node().value = ''
     frontend_buttons_div_d3pn.append('p')
 
 
@@ -84,7 +82,7 @@ async function define_location_of_files() {
     frontend_buttons_div_d3pn.append('p')
 
     // make a select to show project data attrs
-    frontend_buttons_div_d3pn.append('select').attrs({'id':'project_data_attrs'}).styles({'font-size':'12px'})
+    frontend_buttons_div_d3pn.append('select').attrs({ 'id': 'project_data_attrs' }).styles({ 'font-size': '12px' })
     frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'test_show_data_in_console_log' }).text('test show_data_in_console_log').styles({ 'margin-left': '5px' })
         .on('click', test_show_data_in_console_log)
     frontend_buttons_div_d3pn.append('p')
@@ -100,13 +98,31 @@ async function define_location_of_files() {
         .on('click', test_show_poormatching_geocoder_standard_addresses)
     frontend_buttons_div_d3pn.append('p')
 
-    // show data of each attrs
-    // make a check list for required data
-    // save json from frontend
+    frontend_buttons_div_d3pn.append('p')
+    frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'test_export_std_addresses' }).text('test_export_std_addresses').styles({ 'margin-left': '5px' })
+        .on('click', test_export_std_addresses)
+    frontend_buttons_div_d3pn.append('p')
+}
+
+async function test_export_std_addresses() {
+    // get the bccs std addresses before review
+    let html_identifier = `div#${global_project_datadiv_id}`
+    let attr_name = 'geocoder_standard_addresses'
+    let std_addr_dict_json = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
+
+    if (!std_addr_dict_json) {
+        console.log('no std address found in project data')
+        return
+    }
+
+    let currentTime = new Date()
+    let datetime_stampstr = await make_date_time_stamp(currentTime)
+    let std_addr_dict_json_str = JSON.stringify(std_addr_dict_json)
+    await savefile_frontend(std_addr_dict_json_str, `std_addrs_${datetime_stampstr}.json`)
 
 }
 
-async function test_show_std_addresses(){
+async function test_show_std_addresses() {
 
     // get the bccs std addresses before review
     let html_identifier = `div#${global_project_datadiv_id}`
@@ -158,10 +174,10 @@ async function test_show_std_addresses(){
         await display_std_geocoder_data(ev.target, 'all_std_addresses')
     })
     addr_input_d3pn.on('click', async (ev) => {
-        ev.target.value=''
+        ev.target.value = ''
     })
 
-     let index_this_original_addr = original_addrs_arr.indexOf(original_addrs_arr[0])
+    let index_this_original_addr = original_addrs_arr.indexOf(original_addrs_arr[0])
     let index_str = `${index_this_original_addr + 1} of ${original_addrs_arr.length}`
     d3.select('label#index_addr').text(index_str)
 
@@ -257,28 +273,28 @@ async function test_show_std_addresses(){
     await display_std_geocoder_data(addr_input_d3pn.node(), 'all_std_addresses')
 }
 
-async function test_show_data_in_console_log(){
+async function test_show_data_in_console_log() {
     // get value of the select element
     let project_data_attrname = d3.select('select#project_data_attrs').node().value
-    if (! project_data_attrname || project_data_attrname.length === 0){return}
+    if (!project_data_attrname || project_data_attrname.length === 0) { return }
     // get datajson of the project_data_attrname
     let html_identifier = `div#${global_project_datadiv_id}`
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, project_data_attrname)
     console.log(project_data_attrname, datajson)
 }
 
-async function test_list_project_data_attrs(){
+async function test_list_project_data_attrs() {
     let html_identifier = `div#${global_project_datadiv_id}`
     // get all attr names
     let project_data_attrs_arr = d3.select(html_identifier).node().getAttributeNames()
     let exclude_attrs = ['id', 'class', 'style']
-    project_data_attrs_arr = project_data_attrs_arr.filter(x => (! exclude_attrs.includes(x)))
+    project_data_attrs_arr = project_data_attrs_arr.filter(x => (!exclude_attrs.includes(x)))
     project_data_attrs_arr.sort()
     let select_d3pn = d3.select('select#project_data_attrs')
     // console.log(project_data_attrs_arr)
     select_d3pn.html('')
-    project_data_attrs_arr.forEach(a=>{
-        select_d3pn.append('option').attrs({'id':a, 'attrname':a, 'value':a}).text(a)
+    project_data_attrs_arr.forEach(a => {
+        select_d3pn.append('option').attrs({ 'id': a, 'attrname': a, 'value': a }).text(a)
     })
 }
 
@@ -311,13 +327,13 @@ async function test_get_geocoder_std_addresses() {
             datajson2 = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name2)
         } else {
             datajson2 = Object.create(null)
-            datajson2.data=Object.create(null)
+            datajson2.data = Object.create(null)
         }
     }
     console.log(datajson2)
 
     // read the additional search str (e.g., for vpd data, add ', vancouver')
-    let additional_search_str =`${d3.select('input#additional_search_str').node().value}`
+    let additional_search_str = `${d3.select('input#additional_search_str').node().value}`
     console.log(additional_search_str)
 
     // loop for each original address
@@ -360,7 +376,7 @@ async function test_get_geocoder_std_addresses() {
         // console.log(`=== original address ${i + 1} of ${original_addrs_arr.length}`)
 
         if (existing_original_addrs_arr.includes(original_address)) {
-            console.log(`${original_address} has been searched.`); 
+            console.log(`${original_address} has been searched.`);
             continue;
         }
 
@@ -385,7 +401,7 @@ async function test_get_geocoder_std_addresses() {
         if (i / 500 === Math.floor(i / 500)) {
             // save to the project data div
             await save_json_to_html_attr_base64str_of_gzbuffer(updated_std_addrs_json, html_identifier, attr_name2) // save the new json (with meta data)
-           // // also, save the std_addrs_dict to frontend\testdata using as a backend nodejs task
+            // // also, save the std_addrs_dict to frontend\testdata using as a backend nodejs task
             // await save_json_to_backend(file_location, std_addrs_dict) // but send to backend the dict only (without meta data as meta data will be added at backend)
         }
     }
@@ -406,7 +422,7 @@ async function test_import_std_address_data() {
     // note: src_file_obj is not a sterializable json and cannot be saved to project data div
     let src_file_dict = Object.create(null)
     let keys_arr = ['lastModified', 'name', 'lastModifiedDate', 'size', 'type']
-    keys_arr.forEach(k=>{
+    keys_arr.forEach(k => {
         src_file_dict[k] = src_file_obj[k]
     })
 
@@ -419,6 +435,8 @@ async function test_import_std_address_data() {
     console.log(extname)
 
     src_datajson = Object.create(null)
+
+    // currently only support importing json files
 
     let xlsx_filetypes_arr = ['xlsx', 'xlsm']
     if (xlsx_filetypes_arr.includes(extname)) {
@@ -442,16 +460,16 @@ async function test_import_std_address_data() {
     }
     else if (extname === 'csv') {
 
-        // ExcelJS does not work well with csv files (need to convert datastr to stream, whic cannot be done at client side!)
-        // use papaparse instead https://www.papaparse.com/docs#local-files
-        let parsed_dict = Papa.parse(datastr,
-            {
-                complete: function (d) {
-                    // console.log('completed', d)
-                }
-            })
+        // // ExcelJS does not work well with csv files (need to convert datastr to stream, whic cannot be done at client side!)
+        // // use papaparse instead https://www.papaparse.com/docs#local-files
+        // let parsed_dict = Papa.parse(datastr,
+        //     {
+        //         complete: function (d) {
+        //             // console.log('completed', d)
+        //         }
+        //     })
 
-        src_datajson['data'] = parsed_dict.data
+        // src_datajson['data'] = parsed_dict.data
 
         // list out the colnames and ask what columns to select
     } else if (extname === 'json') {
@@ -516,8 +534,20 @@ async function get_original_addresses() { //
     }
     // console.log(src_address_data_json)
 
-    let src_address_data_arr = src_address_data_json.data
-    let colnames_in_original_data_arr = src_address_data_arr[0]
+    let src_addr_dict = src_address_data_json.data
+    let src_address_data_arr = []
+    // get the sheet names (for .csv, it is always one key 'Sheet1'; for xlsx, it has multiple keys...)
+    let sheetnames_arr = Object.keys(src_addr_dict)
+    let colnames_in_original_data_arr = []
+    for (let i = 0; i < sheetnames_arr.length; i++) {
+        let this_sheetname = sheetnames_arr[i]
+        let data_thissheet_arr = src_addr_dict[this_sheetname]
+        let colnames_thissheet_arr = data_thissheet_arr[0]
+        colnames_thissheet_arr = colnames_thissheet_arr.map(x => JSON.stringify([this_sheetname, x]))
+        // data_thissheet_arr[0] = colnames_thissheet_arr
+        colnames_in_original_data_arr = [...colnames_in_original_data_arr, ...colnames_thissheet_arr]
+    }
+
     // console.log(colnames_in_original_data_arr)
 
     // load addr_col_sets
@@ -534,43 +564,87 @@ async function get_original_addresses() { //
     // loop for each colname_sets
     let original_addrs_dict = Object.create(null)
     colname_sets_arr.forEach(c => {
-        let colname_address = c.address
-        let index_colname_address = colnames_in_original_data_arr.indexOf(colname_address)
-        let original_addresses_arr = src_address_data_arr.map(x => x[index_colname_address])
+
+        // this is quite complex 
+        // 1. get and split the sheetname from the column name, c.address is a stringified array like [sheetname1, address_colname1] 
+        let original_addresses_arr = []
+        let colname_addresses_with_sheetname_arr_str = c.address
+        if (colname_addresses_with_sheetname_arr_str.length === 0) { return }
+        let colname_addresses_with_sheetname_arr = JSON.parse(colname_addresses_with_sheetname_arr_str)
+        let colname_addresses_sheetname = colname_addresses_with_sheetname_arr[0] // sheetname1
+        let colname_address = colname_addresses_with_sheetname_arr[1] // addr col name1
+        // console.log(colname_addresses_sheetname, colname_address)
+
+        // 2. from the data dict, get data for this sheet (like data for sheetname1)
+        let addr_data_thissheet_arr = src_addr_dict[colname_addresses_sheetname]
+        let colnames_addr_data_thissheet_arr = addr_data_thissheet_arr[0] // get the column names in the first row
+
+        // 3. lookup the index of the colname in colnames_data_thissheet_arr, e.g. lookup address_colname1 in colnames array, 
+        let index_colname_address = colnames_addr_data_thissheet_arr.indexOf(colname_address)
+
+        // 4. get all cells values of that col (e.g., of address_colname1), and save into an array
+        original_addresses_arr = addr_data_thissheet_arr.map(x => x[index_colname_address])
         // console.log(original_addresses_arr)
 
-        let colname_lat = c.latitude
-        let index_colname_lat = colnames_in_original_data_arr.indexOf(colname_lat)
-        let original_lats_arr = src_address_data_arr.map(x => x[index_colname_lat])
+        console.log(original_addresses_arr)
 
+        // do the same for lat as did in the above for address
+        let colname_lats_with_sheetname_arr_str = c.latitude
+        let original_lats_arr = []
+        if (colname_lats_with_sheetname_arr_str.length > 0) {
+            let colname_lats_with_sheetname_arr = JSON.parse(colname_lats_with_sheetname_arr_str)
+            let colname_lats_sheetname = colname_lats_with_sheetname_arr[0] // sheetname1
+            let colname_lat = colname_lats_with_sheetname_arr[1] // addr col name1
 
-        let colname_long = c.longitude
-        let index_colname_long = colnames_in_original_data_arr.indexOf(colname_long)
-        // console.log(index_colname_long)
-        let original_longs_arr = src_address_data_arr.map(x => x[index_colname_long])
-        // console.log(original_longs_arr)
+            let lat_data_thissheet_arr = src_addr_dict[colname_lats_sheetname]
+            let colnames_lat_data_thissheet_arr = lat_data_thissheet_arr[0]
+
+            let index_colname_lat = colnames_lat_data_thissheet_arr.indexOf(colname_lat)
+            original_lats_arr = lat_data_thissheet_arr.map(x => x[index_colname_lat])
+        }
+        console.log(original_lats_arr)
+
+        // do the same for long
+        let colname_longs_with_sheetname_arr_str = c.longitude
+        let original_longs_arr = []
+        if (colname_longs_with_sheetname_arr_str.length > 0) {
+            let colname_longs_with_sheetname_arr = JSON.parse(colname_longs_with_sheetname_arr_str)
+            let colname_longs_sheetname = colname_longs_with_sheetname_arr[0] // sheetname1
+            let colname_long = colname_longs_with_sheetname_arr[1] // addr col name1
+
+            let long_data_thissheet_arr = src_addr_dict[colname_longs_sheetname]
+            let colnames_long_data_thissheet_arr = long_data_thissheet_arr[0]
+
+            let index_colname_long = colnames_long_data_thissheet_arr.indexOf(colname_long)
+            original_longs_arr = long_data_thissheet_arr.map(x => x[index_colname_long])
+        }
+        console.log(original_longs_arr)
 
         original_addresses_arr.forEach((x, i) => {
             if (i === 0) { return } // skip the first row as it is the col names
             let addr_value = original_addresses_arr[i]
-            if ((! addr_value) || (addr_value.trim().length ===0 || addr_value.trim() === '-')) {return} // need to work on more exceptions
-            addr_value=addr_value.trim()
+            // console.log(addr_value)
+            if ((!addr_value) || (addr_value.trim().length === 0 || addr_value.trim() === '-')) { return } // need to work on more exceptions
+            addr_value = addr_value.trim()
             if (!addr_value || addr_value.trim().length === 0) { return }
+            console.log(addr_value)
             let lat_value = original_lats_arr[i] ? original_lats_arr[i] : ''
-            // console.log(original_longs_arr[i])
+            console.log(lat_value)
             let long_value = original_longs_arr[i] ? original_longs_arr[i] : ''
+            console.log(long_value)
             let gps_str = ''
             if (lat_value.length > 0 && long_value.length > 0) {
                 gps_str = `${lat_value},${long_value}`
             }
+            console.log(gps_str)
             if (!original_addrs_dict[addr_value]) { original_addrs_dict[addr_value] = { gps: [gps_str] } }
             else {
                 if (!original_addrs_dict[addr_value]['gps'].includes(gps_str)) { original_addrs_dict[addr_value]['gps'].push(gps_str) }
             }
-
+            console.log(original_addrs_dict[addr_value])
         })
     })
-    console.log(original_addrs_dict)
+    // console.log(original_addrs_dict)
 
     await update_original_addresses_at_frontend(original_addrs_dict)
 }
@@ -629,18 +703,29 @@ async function show_srcdata_colnames() {
     let attr_name = `src_address_data`
     let datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
 
-    let src_addr_arr
+    let src_addr_dict
 
     // set default value for debugging
     if (!datajson) {
-        // src_addr_arr = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
+        // src_addr_dict = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
         await test_getting_src_file()
         datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
-        src_addr_arr = datajson.data
+        src_addr_dict = datajson.data
     } else {
-        src_addr_arr = datajson.data
+        src_addr_dict = datajson.data
     }
-    let colnames_arr = src_addr_arr[0]
+
+    // get the sheet names (for .csv, it is always one key 'Sheet1'; for xlsx, it has multiple keys...)
+    let sheetnames_arr = Object.keys(src_addr_dict)
+
+    let colnames_arr = []
+    for (let i = 0; i < sheetnames_arr.length; i++) {
+        let this_sheetname = sheetnames_arr[i]
+        let data_thissheet_arr = src_addr_dict[this_sheetname]
+        let colnames_thissheet_arr = data_thissheet_arr[0]
+        colnames_thissheet_arr = colnames_thissheet_arr.map(x => JSON.stringify([this_sheetname, x]))
+        colnames_arr = [...colnames_arr, ...colnames_thissheet_arr]
+    }
 
     // make a table for selected colnames for addr, lat and long
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
@@ -659,6 +744,7 @@ async function show_srcdata_colnames() {
 
     // add the first row
     await add_one_row(col_types_arr, colnames_arr)
+
 
 
 }
@@ -697,6 +783,7 @@ async function add_one_row(col_types_arr, colnames_arr) { // use input - datalis
         let td_d3pn = colnames_tr_d3pn.append('td').attrs({ 'id': `${t}`, 'rowi': tr_doms_length })
 
         let select_d3pn = td_d3pn.append('input').attrs({ 'id': `${t}`, 'class': 'colnames', 'type': 'text', 'list': `${t}_colnames_${tr_doms_length}` }).styles({ 'width': '80%' })
+            .on('click', (ev) => { ev.target.value = '' })
         let datalist_d3pn = td_d3pn.append('datalist').attrs({ 'id': `${t}_colnames_${tr_doms_length}` })
         select_d3pn
             .on('blur', async (ev) => { // blur -- losing focus of this element, focusout -- losing focus of this element and all its descendants
@@ -910,11 +997,11 @@ async function test_getting_src_file() {
 
     let src_file_dict = Object.create(null)
     let keys_arr = ['lastModified', 'name', 'lastModifiedDate', 'size', 'type']
-    keys_arr.forEach(k=>{
+    keys_arr.forEach(k => {
         src_file_dict[k] = src_file_obj[k]
     })
     // console.log(src_file_dict)
-    
+
 
     let attr_name0 = 'src_data_file_info'
     await save_json_to_html_attr_base64str_of_gzbuffer(src_file_dict, html_identifier, attr_name0)
@@ -934,18 +1021,32 @@ async function test_getting_src_file() {
         let databuffer = convert_base64str_to_buffer(datastr)
         let workbook = new ExcelJS.Workbook()
         await workbook.xlsx.load(databuffer)
-        console.log('55', workbook)
+        // console.log('55', workbook)
+        workbook_data_dict = Object.create(null)
         workbook.eachSheet(function (worksheet, sheetId) {
             // ...
-            console.log(sheetId, worksheet.name)
+            // console.log(sheetId, worksheet, worksheet.columnCount)
+            let data_thisws_arr = []
+            // must obtain the number of max columns
+            let maxCol = worksheet.columnCount // maxCol of 3 indicates 3 columns starting from 1
+            worksheet.eachRow((row, rownumber) => {
+                // console.log(row, row.values)
+                let values_arr = row.values
+                // like [empty, address1, empty, long] the first empty is the row head which is always empty, the following empty is indeed undefined when using _arr[i], indicating an empty cell
+                let row_values_arr = []
+                for (let i = 1; i <= maxCol; i++) { //starting from i=1, as i=0 is the row head and is always empty;  max col, not values_arr (if a row only has values in the first col, there will be only 2 elements in that row array, the first being the row head, which is always empty) 
+                    let cell_value = values_arr[i] // NEVER read the values as it is, 'cause numeric values and dates are a trouble!
+                    if (cell_value === null || cell_value === undefined) { cell_value = '' } 
+                    else {cell_value = cell_value.toString()}
+                    row_values_arr.push(cell_value)
+                }
+                data_thisws_arr.push(row_values_arr)
+            })
+            workbook_data_dict[worksheet.name] = data_thisws_arr
+
         });
 
-        // ask which worksheets to get data from
-
-        // for each sheet, ask // ask which row contains the column names
-
-        // what column names to get data from
-
+        src_datajson['data'] = workbook_data_dict
 
     }
     else if (extname === 'csv') {
@@ -959,7 +1060,7 @@ async function test_getting_src_file() {
                 }
             })
 
-        src_datajson['data'] = parsed_dict.data
+        src_datajson['data'] = { 'Sheet1': parsed_dict.data }
 
         // list out the colnames and ask what columns to select
     }
@@ -1458,7 +1559,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
     ]
     let poor_matches_dict = get_poor_matches(std_addr_dict, conditions_arr)
     let cnt_poorly_matched = Object.keys(poor_matches_dict).length
-        
+
     // display the poor matches in the display box
     let display_div_d3pn = d3.select('div#display').styles({ "display": "block" })
     display_div_d3pn.html('')
@@ -1466,7 +1567,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
     // append a select element and list out original addresses of the poorly matched
 
     console.log(cnt_poorly_matched)
-    if (cnt_poorly_matched === 0){
+    if (cnt_poorly_matched === 0) {
         console.log('stopped as there is no poorly matched to show.')
         return
     }
@@ -1486,14 +1587,14 @@ async function test_show_poormatching_geocoder_standard_addresses() {
     }
 
     // set default value
-    addr_input_d3pn.node().value= original_addrs_poor_matched_arr[0]? original_addrs_poor_matched_arr[0]:''
+    addr_input_d3pn.node().value = original_addrs_poor_matched_arr[0] ? original_addrs_poor_matched_arr[0] : ''
 
     // on select change, display the json of the poorly matched
     addr_input_d3pn.on('change', async (ev) => {
         await display_std_geocoder_data(ev.target, 'poorly_matched')
     })
 
-  
+
     let original_addrs_arr = Object.keys(poor_matches_dict)
     let index_this_original_addr = original_addrs_arr.indexOf(original_addrs_arr[0])
     let index_str = `${index_this_original_addr + 1} of ${original_addrs_arr.length}`
@@ -1566,7 +1667,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
                 let nextaddr = addrs_arr2[index_nextaddr]
                 // console.log(index_nextaddr, nextaddr)
                 let addr_input_dom = d3.select('input#select_addrs').node() // must select it again instead of using addr_input_d3pn
-                if (! addr_input_dom) {console.log('the input select is not created because there is no poorly matched addresses to display'); return}
+                if (!addr_input_dom) { console.log('the input select is not created because there is no poorly matched addresses to display'); return }
                 addr_input_dom.value = nextaddr
                 let match_type = 'poorly_matched'
                 await display_std_geocoder_data(addr_input_dom, match_type)
@@ -1582,7 +1683,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
     display_div_d3pn.append('p').attrs({ 'id': 'retry_match_stats' }).styles({ 'font-size': '12px', 'line-height': '18px' })
 
     let textarea_d3pn = display_div_d3pn.append('textarea').attrs({ 'id': 'std_geocoderbc_data_for_review' }).styles({ 'display': 'none' })
-    
+
     let match_type = 'poorly_matched'
     await display_std_geocoder_data(addr_input_d3pn.node(), match_type)
 }
@@ -1670,8 +1771,8 @@ async function update_std_addr_data() {
 
     // get the current original_addr
     let original_addr = d3.select('input#select_addrs').node().value
-    if (! original_addr || original_addr.length === 0){
-        return 
+    if (!original_addr || original_addr.length === 0) {
+        return
     }
     // console.log(original_addr)
 
@@ -1699,12 +1800,12 @@ async function update_std_addr_data() {
 async function display_std_geocoder_data(thisdom, match_type) {
     console.log(thisdom)
     let retry_input_dom = d3.select('input#retry_input').node()
-    if (retry_input_dom){retry_input_dom.value = ""}
+    if (retry_input_dom) { retry_input_dom.value = "" }
 
     let this_original_addr = thisdom.value
     console.log(this_original_addr)
 
-    if (this_original_addr.length === 0) {return}
+    if (this_original_addr.length === 0) { return }
 
     let html_identifier = `div#${global_project_datadiv_id}`
     let attr_name = 'geocoder_standard_addresses'
@@ -1723,9 +1824,9 @@ async function display_std_geocoder_data(thisdom, match_type) {
     if (match_type === 'poorly_matched') {
         matches_dict = get_poor_matches(std_addr_dict, conditions_arr)
     }
-    
+
     console.log(matches_dict)
-    if (Object.keys(matches_dict).length === 0) {return}
+    if (Object.keys(matches_dict).length === 0) { return }
 
     // console.log('after removing gps corrdinates', Object.keys(poor_matches_dict).length)
     // console.log(Object.keys(poor_matches_dict))
@@ -1767,7 +1868,7 @@ async function display_std_geocoder_data(thisdom, match_type) {
 
     // uncheck the confirm button
     let matched_checkbox_dom = d3.select('input#matched').node()
-    if (matched_checkbox_dom){matched_checkbox_dom.checked = false}
+    if (matched_checkbox_dom) { matched_checkbox_dom.checked = false }
 
     // console.log(geocoder_data_dict)
     geocoder_data_dict['original_data']['original_address'] = this_original_addr
