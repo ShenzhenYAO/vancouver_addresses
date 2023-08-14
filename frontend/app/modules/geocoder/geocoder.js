@@ -17,7 +17,7 @@ const global_geocoder_actions_dict = {
 }
 
 async function make_geocoder_action_buttons() {
-    console.log("define file locations")
+    // console.log("define file locations")
 
     // show questions and ask for input in the display box
     let displaybox_d3pn = d3.select('div#display').styles({ 'display': 'block' })
@@ -157,7 +157,7 @@ async function test_show_std_addresses() {
     // make a select element, as well as options each for an original addr
     let original_addrs_arr = Object.keys(std_addr_dict)
     // let addr_input_d3pn = display_div_d3pn.append('select').attrs({ 'id': 'addrs' })
-    let addr_input_d3pn = display_div_d3pn.append('input').attrs({ 'id': 'select_addrs', 'list': `addresses`, 'autocomplete':'off' }) //  if 'autocomplete':'off' is not set, it shows strange values like 'undefined' at the end of the list!
+    let addr_input_d3pn = display_div_d3pn.append('input').attrs({ 'id': 'select_addrs', 'list': `addresses`, 'autocomplete': 'off' }) //  if 'autocomplete':'off' is not set, it shows strange values like 'undefined' at the end of the list!
     let datalist_d3pn = display_div_d3pn.append('datalist').attrs({ 'id': `addresses` })
     let index_addr_d3pn = display_div_d3pn.append('label').attrs({ 'id': 'index_addr' }).styles({ "margin-left": '5px', 'font-size': '10px', 'color': 'grey' })
 
@@ -305,7 +305,6 @@ async function test_list_project_data_attrs() {
 // query std address from frontend
 async function test_get_geocoder_std_addresses() {
 
-
     let html_identifier = `div#${global_project_datadiv_id}`
 
     // get the original address from the project data div
@@ -339,6 +338,8 @@ async function test_get_geocoder_std_addresses() {
     }
     // console.log(datajson2)
 
+
+
     // read the additional search str (e.g., for vpd data, add ', vancouver')
     let additional_search_str = `${d3.select('input#additional_search_str').node().value}`
     // console.log(additional_search_str)
@@ -356,7 +357,7 @@ async function test_get_geocoder_std_addresses() {
     let existing_original_addrs_arr = Object.keys(std_addrs_dict)
 
     // loop for the refined list and get std addr data for each
-    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_geographic\bc_geocoder_standard_address\geocoder_bccs_standard_addresses_before_review.json`.replace(/\\/g, '/')
+    let file_location = String.raw`\\vch.ca\departments\Public Health SU (Dept VCH-PHC)\Restricted\Overdose surveillance\master_data\_geographic\bc_geocoder_standard_address`.replace(/\\/g, '/')
     let count_new_address = 0
 
     let updated_std_addrs_json = {
@@ -388,7 +389,7 @@ async function test_get_geocoder_std_addresses() {
         }
 
         count_new_address++
-        // console.log(`${original_address} is new. Getting standard geo BC address...`)
+        console.log(`${i+1} of ${original_addrs_arr.length}, ${original_address} is new. Getting standard geo BC address...`)
 
         // replace & with and add additional search str like for all data from vpd, add ', vancouver'
         let search_str = original_address.replace('&', ' and ')
@@ -571,6 +572,9 @@ async function get_original_addresses() { //
         return
     }
 
+    make_wait_modal()
+
+
     // loop for each colname_sets
     let original_addrs_dict = Object.create(null)
     colname_sets_arr.forEach(c => {
@@ -657,6 +661,9 @@ async function get_original_addresses() { //
     // console.log(original_addrs_dict)
 
     await update_original_addresses_at_frontend(original_addrs_dict)
+    d3.select('div#coverall').remove()
+
+
 }
 
 async function update_original_addresses_at_frontend(new_original_addrs_dict) {
@@ -686,7 +693,7 @@ async function update_original_addresses_at_frontend(new_original_addrs_dict) {
     let new_addrs_arr = Object.keys(new_original_addrs_dict)
     new_addrs_arr.forEach(a => {
         if (!updated_datajson['data'][a]) {
-            console.log('adding address dict ===')
+            // console.log('adding address dict ===')
             updated_datajson['data'][a] = new_original_addrs_dict[a]
         }
         else {
@@ -701,7 +708,7 @@ async function update_original_addresses_at_frontend(new_original_addrs_dict) {
 
     // console.log(updated_datajson)
     await save_json_to_html_attr_base64str_of_gzbuffer(updated_datajson, html_identifier, attr_name1)
-
+    console.log('distinct orginal addresses saved in attr "geocoder_original_address" of the project data div.')
 }
 
 
@@ -720,8 +727,8 @@ async function show_srcdata_colnames() {
         // src_addr_dict = [['addr1', 'lat1', 'long1', 'add3', 'add2', 'lat2', 'long2',]]
         await test_getting_src_file()
         datajson = await get_json_from_html_attr_base64str_of_gzbuffer(html_identifier, attr_name)
-        
-    } 
+
+    }
 
     src_addr_dict = datajson.data
 
@@ -742,7 +749,7 @@ async function show_srcdata_colnames() {
     displaybox_d3pn.html('')
     let select_colnames_box_d3pn = d3.select('div#select_colnames')
     // it can be deleted when showing std addresses!
-    if (! select_colnames_box_d3pn.node()){select_colnames_box_d3pn=displaybox_d3pn.append('div').attrs({ 'id': 'select_colnames' })}
+    if (!select_colnames_box_d3pn.node()) { select_colnames_box_d3pn = displaybox_d3pn.append('div').attrs({ 'id': 'select_colnames' }) }
     select_colnames_box_d3pn.select('table#src_colnames').remove()
     let colnames_table_d3pn = select_colnames_box_d3pn.append('table').attrs({ 'id': 'src_colnames' }).styles({ 'font-size': '12px', 'width': '99%' })
     let colnames_titletr_d3pn = colnames_table_d3pn.append('tr').attrs({ 'id': 'src_colnames_title' })
@@ -1024,7 +1031,7 @@ async function test_getting_src_file() {
 
     let filenamesegs_arr = src_file_obj.name.split('.')
     let extname = filenamesegs_arr[filenamesegs_arr.length - 1]
-    console.log(extname)
+    // console.log(extname)
 
     let src_datajson = { 'meta': { src: src_file_dict }, data: null }
 
@@ -1049,8 +1056,8 @@ async function test_getting_src_file() {
                 let row_values_arr = []
                 for (let i = 1; i <= maxCol; i++) { //starting from i=1, as i=0 is the row head and is always empty;  max col, not values_arr (if a row only has values in the first col, there will be only 2 elements in that row array, the first being the row head, which is always empty) 
                     let cell_value = values_arr[i] // NEVER read the values as it is, 'cause numeric values and dates are a trouble!
-                    if (cell_value === null || cell_value === undefined) { cell_value = '' } 
-                    else {cell_value = cell_value.toString()}
+                    if (cell_value === null || cell_value === undefined) { cell_value = '' }
+                    else { cell_value = cell_value.toString() }
                     row_values_arr.push(cell_value)
                 }
                 data_thisws_arr.push(row_values_arr)
@@ -1117,7 +1124,7 @@ async function get_datastr_from_local_fileobj(fileobj) {
     }
     else {
         // read data as a txt file
-        console.log(`the file ${fileobj.name} is read as a txt file`)
+        // console.log(`the file ${fileobj.name} is read as a txt file`)
         data_str = await get_data_from_text_fileobj(fileobj)
         // save it to the metadatadiv
     }
@@ -1184,7 +1191,7 @@ async function makepage_geocoder() {
     let thisdom_ht = thisdom.scrollHeight > 80 ? '80px' : thisdom.scrollHeight + "px"
     thisdom.style.height = thisdom_ht // resize the textarea
 
-    console.log('makepage_geocoder')
+    // console.log('makepage_geocoder')
 
     // add a list of actions in the stage
     let stage_d3pn = d3.select('div#stage')
@@ -1200,7 +1207,7 @@ async function makepage_geocoder() {
             'width': '50%',
             'border': '1px solid grey'
         })
-    
+
     // the following part makes a list of actions defined in global_geocoder_actions_dict
     // these actions are mostly for backend interaction
     // currently there is no actions in that global var therefore nothing is displayed here
@@ -1214,11 +1221,11 @@ async function makepage_geocoder() {
     for (let i = 0; i < geocoder_actions_arr.length; i++) {
         let geocoder_actionname = geocoder_actions_arr[i]
         let geocoder_action_function = global_geocoder_actions_dict[geocoder_actionname]
-        if (!geocoder_action_function){continue}
-        
+        if (!geocoder_action_function) { continue }
+
         let action_d3pn = ul_action_d3pn.append('li').attrs({ 'id': `li_${geocoder_actionname}`, 'class': 'geocoder_actions', 'action': geocoder_actionname }).text(geocoder_actionname)
             .styles({ 'padding': '6px', 'font-size': '12px' })
-        
+
         if (geocoder_action_function) {
             action_d3pn.on('click', geocoder_action_function)
         }
@@ -1527,7 +1534,8 @@ async function get_bc_geocoder(inputstr, search_type, additional_search_str) { /
         requestdatafromfrontend_json = null,
         json_from_frontend = null,
         function_to_run_after_receiving_response = function_to_run_after_receiving_response,
-        save_to_metadiv_spec = null
+        save_to_metadiv_spec = null,
+        coverall = false
     )
 
     // after it is done, the data should have been stored in 'tmp1' of global_project_datadiv_id
@@ -1597,7 +1605,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
     // make a select element, as well as options each for an original addr
     let original_addrs_poor_matched_arr = Object.keys(poor_matches_dict)
     // let addr_input_d3pn = display_div_d3pn.append('select').attrs({ 'id': 'addrs' })
-    let addr_input_d3pn = display_div_d3pn.append('input').attrs({ 'id': 'select_addrs', 'list': `addresses`, 'autocomplete':'off' }) //  if 'autocomplete':'off' is not set, it shows strange values like 'undefined' at the end of the list!
+    let addr_input_d3pn = display_div_d3pn.append('input').attrs({ 'id': 'select_addrs', 'list': `addresses`, 'autocomplete': 'off' }) //  if 'autocomplete':'off' is not set, it shows strange values like 'undefined' at the end of the list!
     let datalist_d3pn = display_div_d3pn.append('datalist').attrs({ 'id': `addresses` })
     let index_addr_d3pn = display_div_d3pn.append('label').attrs({ 'id': 'index_addr' }).styles({ "margin-left": '5px', 'font-size': '10px', 'color': 'grey' })
 
@@ -1888,7 +1896,7 @@ async function display_std_geocoder_data(thisdom, match_type) {
     }
     let civic_number = features_arr[0].properties.civicNumber
     let civic_number_str = ""
-    if ((civic_number ===undefined || civic_number === null ||  civic_number.length === 0) && notinanyblock_str.length === 0) {
+    if ((civic_number === undefined || civic_number === null || civic_number.length === 0) && notinanyblock_str.length === 0) {
         civic_number_str = `<br /><span style="color: red; "><strong>Missing or incorrect civic number.</strong></span>`
     }
 

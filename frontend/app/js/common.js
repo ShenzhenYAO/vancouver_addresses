@@ -206,12 +206,14 @@ async function restful(
     requestdatafromfrontend_json = null,
     json_from_frontend = null,
     function_to_run_after_receiving_response = null,
-    save_to_metadiv_spec = null
+    save_to_metadiv_spec = null, 
+    coverall=true, // make a modal to cover all elements and wait until data from frontend is ready 
 ) {
 
     // 1. define the request task
     // let requesttask = "js_pa_dl_01_make_section_texts_with_meta"
     // console.log('run', requesttask)
+    // console.log(coverall)
 
     if (!backend_type) {
         backend_type = 'nodejs'
@@ -325,19 +327,20 @@ async function restful(
 
     // run the general process to interact with backend 
     // console.log(json_from_frontend)
-    await interact_with_backend(json_from_frontend, function_to_run_after_receiving_response)
+    await interact_with_backend(json_from_frontend, function_to_run_after_receiving_response, coverall=coverall)
 }
 
-async function interact_with_backend(json_from_frontend, function_to_run_after_receiving_response) {
+async function interact_with_backend(json_from_frontend, function_to_run_after_receiving_response, coverall=true) {
     // make a cover modal, so that the page is locked when the backend is running. 
-    make_wait_modal()
+    if (coverall){make_wait_modal()}
+    
 
     // send the request json to backend, receive the response json from backend, and do something at the frontend
     let responsedata = await $.when(ajaxcall(json_from_frontend))//  ... .done(async (d) => {return d })
     // console.log(typeof responsedata)
 
     // When the backend process is complete and the response data is received, remove the cover modal. 
-    d3.select('div#coverall').remove()
+    if (coverall){d3.select('div#coverall').remove()}
 
     // the response data can be a string (if it is from python api), or a json object (if it is from node.js backend app js)
     // the following is to parse the string to json if it is a string
@@ -364,7 +367,7 @@ function ajaxcall(json_from_frontend) {
     let contentType = json_from_frontend.contentType ? json_from_frontend.contentType : null
     let timeout = json_from_frontend.timeout ? json_from_frontend.timeout : null
 
-    console.log(url, type, contentType, dataType, crossDomain, data, format, timeout)
+    // console.log(url, type, contentType, dataType, crossDomain, data, format, timeout)
 
     return $.ajax({
         url: url,
@@ -465,7 +468,9 @@ function bufferToStream (buffer) {
   }
 
 async function waitfor(seconds){
-    return await new Promise((resolve) => {setTimeout(()=>{ resolve(`waited for ${seconds} second(s)`)}, seconds*1000);}).then(d => { console.log(d)}) 
+    return await new Promise((resolve) => {setTimeout(()=>{ resolve(`waited for ${seconds} second(s)`)}, seconds*1000);}).then(d => { 
+        console.log(d)
+    }) 
 }
 
 
