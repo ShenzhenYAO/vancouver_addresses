@@ -393,6 +393,7 @@ async function test_get_geocoder_std_addresses() {
 
         // replace & with and add additional search str like for all data from vpd, add ', vancouver'
         let search_str = original_address.replace('&', ' and ')
+        search_str = original_address.replace('/', ' and ')
         search_str = `${search_str}, ${additional_search_str}`
 
         // search and get the std address
@@ -1453,7 +1454,8 @@ async function get_bc_geocoder(inputstr, search_type, additional_search_str) { /
     if (!additional_search_str) { additional_search_str = '' }
 
     // replace & with and
-    inputstr = inputstr.replace('&', ' and ')
+    // inputstr = inputstr.replace('&', ' and ')
+    // inputstr.replace('/', ' and ')
     // console.log(inputstr)
     inputstr = `${inputstr}, ${additional_search_str}`
 
@@ -1574,11 +1576,11 @@ async function test_show_poormatching_geocoder_standard_addresses() {
 
 
     let std_addr_dict = std_addr_dict_json.data // like {"Original address": {geocoder_bc: {...}}}
-    console.log(std_addr_dict)
+    // console.log(std_addr_dict)
 
     // get matched statistics like how many had 1 matches and how many 2 matches, etc; how many had a score of 90, 100, etc.
     let matching_stats_dict = get_match_statistics(std_addr_dict)
-    console.log(matching_stats_dict)
+    // console.log(matching_stats_dict)
 
     // get the poor matched by condition
     let conditions_arr = [
@@ -1597,7 +1599,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
         .styles({ 'height': '90%' })
     // append a select element and list out original addresses of the poorly matched
 
-    console.log(cnt_poorly_matched)
+    // console.log(cnt_poorly_matched)
     if (cnt_poorly_matched === 0) {
         console.log('stopped as there is no poorly matched to show.')
         return
@@ -1664,19 +1666,19 @@ async function test_show_poormatching_geocoder_standard_addresses() {
             let confirm_result = confirm('Proceed to remove the current address from the poorly matched list?')
             // remember the current original addr
             let current_original_addr = d3.select('input#select_addrs').node().value
-            console.log(current_original_addr)
+            // console.log(current_original_addr)
 
             // get the index of the current address in all poorly matched addresses
             let options_doms_arr = d3.select('datalist#addresses').selectAll('option.option_addr').nodes()
-            console.log(options_doms_arr)
+            // console.log(options_doms_arr)
             let addrs_arr = []
             for (let j = 0; j < options_doms_arr.length; j++) {
                 let thisaddr = options_doms_arr[j].getAttribute('addr')
                 addrs_arr.push(thisaddr)
             }
-            console.log(addrs_arr[360])
+            // console.log(addrs_arr[360])
             let index_currentaddr = addrs_arr.indexOf(current_original_addr)
-            console.log(index_currentaddr, current_original_addr)
+            // console.log(index_currentaddr, current_original_addr)
 
 
             // console.log(confirm_result)
@@ -1695,11 +1697,11 @@ async function test_show_poormatching_geocoder_standard_addresses() {
                     let thisaddr2 = options_doms_arr2[j].getAttribute('addr')
                     addrs_arr2.push(thisaddr2)
                 }
-                console.log(addrs_arr2)
+                // console.log(addrs_arr2)
                 // as the current addr has been deleted, now that the next addr has the same index as index_currentaddr, unless the current addr was the last in the arr
                 let index_nextaddr = index_currentaddr < addrs_arr2.length ? index_currentaddr : 0
                 let nextaddr = addrs_arr2[index_nextaddr]
-                console.log(index_nextaddr, nextaddr)
+                // console.log(index_nextaddr, nextaddr)
                 let addr_input_dom = d3.select('input#select_addrs').node() // must select it again instead of using addr_input_d3pn
                 if (!addr_input_dom) { console.log('the input select is not created because there is no poorly matched addresses to display'); return }
                 addr_input_dom.value = nextaddr
@@ -1723,7 +1725,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
 }
 
 async function get_bc_gecoder_by_input_addr() {
-    console.log(get_bc_gecoder_by_input_addr)
+    // console.log(get_bc_gecoder_by_input_addr)
 
     let original_address = d3.select('input#select_addrs').node().value
     let retry_address = d3.select('input#retry_input').node().value
@@ -1743,7 +1745,7 @@ async function get_bc_gecoder_by_input_addr() {
     let features_arr
     if (std_addr_json.features) { features_arr = std_addr_json.features }
     else { features_arr = [std_addr_json] }
-    console.log(features_arr)
+    // console.log(features_arr)
     features_arr[0].retry_data = { search_type: search_type, address: retry_address }
     let features_cnt1 = features_arr.length
     let score1 = features_arr[0].properties ? features_arr[0].properties.score : ""
@@ -1755,7 +1757,7 @@ async function get_bc_gecoder_by_input_addr() {
     if (faults_arr && faults_arr.length > 0) {
         for (let j = 0; j < faults_arr.length; j++) {
             let this_fault = faults_arr[j]['fault']
-            console.log(this_fault)
+            // console.log(this_fault)
             if (this_fault.toLowerCase().trim() === 'notinanyblock') { notinanyblock_str = `<br /><span style="color: red; "><strong> The civic number you are searching for does not belong to any block on this street.</strong></span>` }
 
         }
@@ -1787,18 +1789,18 @@ async function get_bc_gecoder_by_input_addr() {
     existing_geocoder_bc_arr = [features_arr[0], ...existing_geocoder_bc_arr]
     std_data_this_addr_dict.geocoder_bc = existing_geocoder_bc_arr // must have, otherwise std_data_this_addr_dict is NOT updated
     // console.log(existing_geocoder_bc_arr)
-    console.log(std_addr_dict_json.data[original_address])
+    // console.log(std_addr_dict_json.data[original_address])
 
     // update the display data in std_geocoderbc_data_for_review
     let textarea_d3pn = d3.select('textarea#std_geocoderbc_data_for_review')
     std_data_this_addr_dict['original_data']['original addr'] = original_address
-    console.log(std_data_this_addr_dict)
+    // console.log(std_data_this_addr_dict)
     let geocoder_data_dict_str = JSON.stringify(std_data_this_addr_dict, null, 4)
     textarea_d3pn.text(geocoder_data_dict_str)
         .attrs({ 'data': geocoder_data_dict_str })
 
     // save it to 'geocoder_bccs_standard_addresses_before_review'
-    console.log(std_addr_dict_json)
+    // console.log(std_addr_dict_json)
     await save_json_to_html_attr_base64str_of_gzbuffer(std_addr_dict_json, html_identifier, attr_name)
 
 
@@ -1836,7 +1838,7 @@ async function update_std_addr_data() {
 
 async function display_std_geocoder_data(thisdom, match_type) {
 
-    console.log('display_std_geocoder_data')
+    // console.log('display_std_geocoder_data')
     // console.log(thisdom)
     let retry_input_dom = d3.select('input#retry_input').node()
     if (retry_input_dom) { retry_input_dom.value = "" }
@@ -1864,7 +1866,7 @@ async function display_std_geocoder_data(thisdom, match_type) {
         matches_dict = get_poor_matches(std_addr_dict, conditions_arr)
     }
 
-    console.log(matches_dict)
+    // console.log(matches_dict)
     if (Object.keys(matches_dict).length === 0) { return }
 
     // console.log('after removing gps corrdinates', Object.keys(poor_matches_dict).length)
@@ -1990,8 +1992,6 @@ function get_poor_matches(data, conditions_arr) {
     // define a pattern for postal codes
     let pattern_pscode = "^[A-Z]\\\d[A-Z](\\\S{0,})\\\d[A-Z]\\\d"
     let re_pscode = new RegExp(pattern_pscode)
-
-
 
     for (let i = 0; i < original_addr_arr.length; i++) {
         let this_origin_addr = original_addr_arr[i]

@@ -613,7 +613,7 @@ async function get_source_json() {
 
     let filenamesegs_arr = src_file_obj.name.split('.')
     let extname = filenamesegs_arr[filenamesegs_arr.length - 1]
-    console.log(extname)
+    // console.log(extname)
 
     // console.log(extname)
     let readfileresult_dict =Object.create(null)
