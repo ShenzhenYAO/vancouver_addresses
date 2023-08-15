@@ -1638,10 +1638,13 @@ async function test_show_poormatching_geocoder_standard_addresses() {
 
     // insert a try box for re-entering new addr
     display_div_d3pn.append('p')
-    display_div_d3pn.append('input').attrs({ 'id': 'retry_input' }).styles({ 'font-size': '12px', 'line-height': '18px', 'width': '70%', 'border': 'solid 0px black', 'border-bottom': 'solid 0.5px black', 'outline': '0px solid transparent' })
+    let retry_input_d3pn = display_div_d3pn.append('input').attrs({ 'id': 'retry_input' }).styles({ 'font-size': '12px', 'line-height': '18px', 'width': '70%', 'border': 'solid 0px black', 'border-bottom': 'solid 0.5px black', 'outline': '0px solid transparent' })
         .on('keyup', (ev) => {
             if (ev.key === 'Enter') { d3.select('button#retry_submit').node().click() }
         })
+    let retry_str = addr_input_d3pn.node().value.toString().replace('&', ' and ').replace('/', ' and ')
+    retry_input_d3pn.node().value = retry_str
+
     let search_type_select_d3pn = display_div_d3pn.append('select').attrs({ 'id': 'search_type' }).styles({ 'font-size': '12px' })
     let search_types_arr = ['addresses', 'sites', 'intersections', 'occupants']
     search_types_arr.forEach((d, k) => {
@@ -1841,7 +1844,14 @@ async function display_std_geocoder_data(thisdom, match_type) {
     // console.log('display_std_geocoder_data')
     // console.log(thisdom)
     let retry_input_dom = d3.select('input#retry_input').node()
-    if (retry_input_dom) { retry_input_dom.value = "" }
+    if (retry_input_dom) { 
+        retry_input_dom.value = ""
+        let select_address_input_dom = d3.select('input#select_addrs').node()
+        if (select_address_input_dom) {
+            let retry_str = select_address_input_dom.value.toString().replace('&', ' and ').replace('/', ' and ')
+            retry_input_dom.value = retry_str
+        }
+    }
 
     let this_original_addr = thisdom.value
     // console.log(this_original_addr)
