@@ -223,7 +223,7 @@ async function test_show_std_addresses() {
     //         // console.log(current_original_addr)
 
     //         // get the index of the current address in all poorly matched addresses
-    //         let options_doms_arr = d3.select('input#select_addrs').selectAll('option.option_addr').nodes()
+    //         let options_doms_arr = d3.select('datalist#addresses').selectAll('option.option_addr').nodes()
     //         // console.log(options_doms_arr)
     //         let addrs_arr = []
     //         for (let j = 0; j < options_doms_arr.length; j++) {
@@ -496,7 +496,7 @@ async function test_import_std_address_data() {
     // console.log(97, d3.select(html_identifier).node())
     let attr_name = `geocoder_standard_addresses`
     await save_json_to_html_attr_base64str_of_gzbuffer(src_datajson, html_identifier, attr_name)
-
+    d3.select('div#display').html('')
 }
 
 
@@ -1096,6 +1096,8 @@ async function test_getting_src_file() {
 
     // console.log(src_datajson)
 
+    d3.select('div#display').html('')
+
 }
 
 
@@ -1662,19 +1664,19 @@ async function test_show_poormatching_geocoder_standard_addresses() {
             let confirm_result = confirm('Proceed to remove the current address from the poorly matched list?')
             // remember the current original addr
             let current_original_addr = d3.select('input#select_addrs').node().value
-            // console.log(current_original_addr)
+            console.log(current_original_addr)
 
             // get the index of the current address in all poorly matched addresses
-            let options_doms_arr = d3.select('input#select_addrs').selectAll('option.option_addr').nodes()
-            // console.log(options_doms_arr)
+            let options_doms_arr = d3.select('datalist#addresses').selectAll('option.option_addr').nodes()
+            console.log(options_doms_arr)
             let addrs_arr = []
             for (let j = 0; j < options_doms_arr.length; j++) {
                 let thisaddr = options_doms_arr[j].getAttribute('addr')
                 addrs_arr.push(thisaddr)
             }
-            // console.log(addrs_arr)
+            console.log(addrs_arr[360])
             let index_currentaddr = addrs_arr.indexOf(current_original_addr)
-            // console.log(index_currentaddr, current_original_addr)
+            console.log(index_currentaddr, current_original_addr)
 
 
             // console.log(confirm_result)
@@ -1693,11 +1695,11 @@ async function test_show_poormatching_geocoder_standard_addresses() {
                     let thisaddr2 = options_doms_arr2[j].getAttribute('addr')
                     addrs_arr2.push(thisaddr2)
                 }
-
+                console.log(addrs_arr2)
                 // as the current addr has been deleted, now that the next addr has the same index as index_currentaddr, unless the current addr was the last in the arr
                 let index_nextaddr = index_currentaddr < addrs_arr2.length ? index_currentaddr : 0
                 let nextaddr = addrs_arr2[index_nextaddr]
-                // console.log(index_nextaddr, nextaddr)
+                console.log(index_nextaddr, nextaddr)
                 let addr_input_dom = d3.select('input#select_addrs').node() // must select it again instead of using addr_input_d3pn
                 if (!addr_input_dom) { console.log('the input select is not created because there is no poorly matched addresses to display'); return }
                 addr_input_dom.value = nextaddr

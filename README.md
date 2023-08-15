@@ -21,3 +21,6 @@ search address, evaluation, and parcel id by address
 https://www.bcassessment.ca/
 
 downloading BC block number data
+
+to run a .cmd or .bat file from within powershell:
+cmd.exe -/c "update_bcaddress_projectfiles.cmd"

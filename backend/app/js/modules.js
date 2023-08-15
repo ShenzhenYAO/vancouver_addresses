@@ -43,5 +43,16 @@ module.exports = {
             else if (type1 === 'function') { result = 'function' }
             return result
         },
+        make_date_time_stamp:
+        function make_date_time_stamp(currentTime) {
+            let year = currentTime.toLocaleString('default', { year: 'numeric' })
+            let month = currentTime.toLocaleString('default', { month: "2-digit" })
+            let day = currentTime.toLocaleString('default', { day: "2-digit" })
+            let hours = currentTime.toLocaleString('default', { hour: '2-digit', hourCycle: 'h23' })
+            let minutes = currentTime.toLocaleString('default', { minute: "2-digit" })
+            let seconds = currentTime.toLocaleString('default', { second: "2-digit" })
+            let datetime_stampstr = `${year}${month}${day}${hours}${minutes}${seconds}`
+            return datetime_stampstr
+        },
     
 } // modules.export
