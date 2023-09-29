@@ -45,14 +45,30 @@ module.exports = {
         },
         make_date_time_stamp:
         function make_date_time_stamp(currentTime) {
+            // note: the 2-digits option is NOT relaible! e.g., for seconds, it create a str of 9 instead of 09
             let year = currentTime.toLocaleString('default', { year: 'numeric' })
-            let month = currentTime.toLocaleString('default', { month: "2-digit" })
-            let day = currentTime.toLocaleString('default', { day: "2-digit" })
-            let hours = currentTime.toLocaleString('default', { hour: '2-digit', hourCycle: 'h23' })
-            let minutes = currentTime.toLocaleString('default', { minute: "2-digit" })
-            let seconds = currentTime.toLocaleString('default', { second: "2-digit" })
+            let month = currentTime.toLocaleString('default', { month: "numeric" })
+            month = this.add_leading_zeros(month, "00")
+            let day = currentTime.toLocaleString('default', { day: "numeric" })
+            day = this.add_leading_zeros(day, "00")
+            let hours = currentTime.toLocaleString('default', { hour: 'numeric', hourCycle: 'h23' })
+            hours = this.add_leading_zeros(hours, "00")
+            let minutes = currentTime.toLocaleString('default', { minute: "numeric" })
+            minutes = this.add_leading_zeros(minutes, "00")
+            // console.log(53, minutes, typeof(minutes))
+            let seconds = currentTime.toLocaleString('default', { second: "numeric" })
+            seconds = this.add_leading_zeros(seconds, "00")
+            // console.log(55, seconds, typeof(seconds))
+
             let datetime_stampstr = `${year}${month}${day}${hours}${minutes}${seconds}`
             return datetime_stampstr
+        },
+        add_leading_zeros:
+        function add_leading_zeros(num, pattern) {
+            let numstr = num.toString();
+            let length = pattern.length
+            while (numstr.length < length) numstr = "0" + numstr;
+            return numstr;
         },
     
 } // modules.export
