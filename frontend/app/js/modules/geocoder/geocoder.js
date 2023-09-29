@@ -393,7 +393,8 @@ async function test_get_geocoder_std_addresses() {
 
         // replace & with and add additional search str like for all data from vpd, add ', vancouver'
         let search_str = original_address.replace('&', ' and ')
-        search_str = original_address.replace('/', ' and ')
+        search_str = search_str.replace('/', ' and ')
+        search_str = search_str.replace('#', '')
         search_str = `${search_str}, ${additional_search_str}`
 
         // search and get the std address
@@ -596,6 +597,7 @@ async function get_original_addresses() { //
 
         // 3. lookup the index of the colname in colnames_data_thissheet_arr, e.g. lookup address_colname1 in colnames array, 
         let index_colname_address = colnames_addr_data_thissheet_arr.indexOf(colname_address)
+        // console.log(index_colname_address, colname_address)
 
         // 4. get all cells values of that col (e.g., of address_colname1), and save into an array
         original_addresses_arr = addr_data_thissheet_arr.map(x => x[index_colname_address])
@@ -1642,7 +1644,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
         .on('keyup', (ev) => {
             if (ev.key === 'Enter') { d3.select('button#retry_submit').node().click() }
         })
-    let retry_str = addr_input_d3pn.node().value.toString().replace('&', ' and ').replace('/', ' and ')
+    let retry_str = addr_input_d3pn.node().value.toString().replace('&', ' and ').replace('/', ' and ').replace('#', '')
     retry_input_d3pn.node().value = retry_str
 
     let search_type_select_d3pn = display_div_d3pn.append('select').attrs({ 'id': 'search_type' }).styles({ 'font-size': '12px' })
@@ -1713,6 +1715,9 @@ async function test_show_poormatching_geocoder_standard_addresses() {
             }
         })
     display_div_d3pn.append('label').text('yes the standard address is correct.').styles({ 'font-size': '12px' })
+        .on('click', async ()=>{
+            d3.select('input#matched').node().click()
+        })
     // display_div_d3pn.append('input').attrs({'id':'unmatched', 'type':'radio', 'value': 'unmatched', 'name':'matched_decision'}) // by giving the same name, it only allows to check one of the radio input
     // display_div_d3pn.append('label').text('no, it is correct.').styles({'font-size': '12px'})
     display_div_d3pn.append('p')
@@ -1848,7 +1853,7 @@ async function display_std_geocoder_data(thisdom, match_type) {
         retry_input_dom.value = ""
         let select_address_input_dom = d3.select('input#select_addrs').node()
         if (select_address_input_dom) {
-            let retry_str = select_address_input_dom.value.toString().replace('&', ' and ').replace('/', ' and ')
+            let retry_str = select_address_input_dom.value.toString().replace('&', ' and ').replace('/', ' and ').replace('#', '')
             retry_input_dom.value = retry_str
         }
     }
