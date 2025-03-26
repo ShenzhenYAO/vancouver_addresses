@@ -98,6 +98,15 @@ async function make_geocoder_action_buttons() {
     frontend_buttons_div_d3pn.append('p')
     frontend_buttons_div_d3pn.append('button').attrs({ 'id': 'test_show_poorly_matched' }).text('test_show_poorly_matched').styles({ 'margin-left': '5px' })
         .on('click', test_show_poormatching_geocoder_standard_addresses)
+
+    // add an input to define the lowest score to define poorly matched
+    frontend_buttons_div_d3pn.append('lable').text('poorly matched = match score < ')
+        .styles({ 'margin-left': '10px', 'font-size': '12px' })
+    frontend_buttons_div_d3pn.append('input')
+        .attrs({'id':'poorly_match_highest_score'})
+        .styles({ 'margin-left': '10px', 'font-size': '12px' })
+        .node().value = 80
+
     frontend_buttons_div_d3pn.append('p')
 
     frontend_buttons_div_d3pn.append('p')
@@ -389,7 +398,7 @@ async function test_get_geocoder_std_addresses() {
         }
 
         count_new_address++
-        console.log(`${i+1} of ${original_addrs_arr.length}, ${original_address} is new. Getting standard geo BC address...`)
+        console.log(`${i + 1} of ${original_addrs_arr.length}, ${original_address} is new. Getting standard geo BC address...`)
 
         // replace & with and add additional search str like for all data from vpd, add ', vancouver'
         let search_str = original_address.replace('&', ' and ')
@@ -1576,6 +1585,10 @@ async function test_show_poormatching_geocoder_standard_addresses() {
         return
     }
 
+    // get the poorly_match_highest_score from the input
+    let poorly_match_highest_score = d3.select('input#poorly_match_highest_score').node().value
+    poorly_match_highest_score = parseInt(poorly_match_highest_score)
+    console.log('poorly_match_highest_score = ', poorly_match_highest_score)    
 
     let std_addr_dict = std_addr_dict_json.data // like {"Original address": {geocoder_bc: {...}}}
     // console.log(std_addr_dict)
@@ -1588,7 +1601,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
     let conditions_arr = [
         "features_arr.length === 0",
         "features_arr.length > 1",
-        "features_arr[0].properties.score < 90",
+        `features_arr[0].properties.score < ${poorly_match_highest_score}`,
         // "features_arr[0].properties.precisionPoints < 90 ",
         // "features_arr[0].properties.locationPositionalAccuracy !== 'high'", // seems locationPositionalAccuracy does not matter 
     ]
@@ -1715,7 +1728,7 @@ async function test_show_poormatching_geocoder_standard_addresses() {
             }
         })
     display_div_d3pn.append('label').text('yes the standard address is correct.').styles({ 'font-size': '12px' })
-        .on('click', async ()=>{
+        .on('click', async () => {
             d3.select('input#matched').node().click()
         })
     // display_div_d3pn.append('input').attrs({'id':'unmatched', 'type':'radio', 'value': 'unmatched', 'name':'matched_decision'}) // by giving the same name, it only allows to check one of the radio input
@@ -1791,6 +1804,7 @@ async function get_bc_gecoder_by_input_addr() {
     // find the existing data of the original addr
     // console.log(std_addr_dict)
     let std_data_this_addr_dict = std_addr_dict[original_address]
+    console.log(1807,original_address, std_data_this_addr_dict)
     // find the geocoder_bc
     let existing_geocoder_bc_arr = std_data_this_addr_dict.geocoder_bc
     // insert the first element of the new geocoder_data (features_arr) as the first element of the existing
@@ -1849,7 +1863,7 @@ async function display_std_geocoder_data(thisdom, match_type) {
     // console.log('display_std_geocoder_data')
     // console.log(thisdom)
     let retry_input_dom = d3.select('input#retry_input').node()
-    if (retry_input_dom) { 
+    if (retry_input_dom) {
         retry_input_dom.value = ""
         let select_address_input_dom = d3.select('input#select_addrs').node()
         if (select_address_input_dom) {
